@@ -19,6 +19,8 @@ function notify(title, body, onClick) {
 }
 
 function dailySummary(data) {
+  const b = data.briefing;
+  if (b && b.date === new Date().toDateString() && b.text) return b.text.slice(0, 240);
   const school = data.school || [];
   const soon = school.filter((t) => t.due && new Date(t.due) - Date.now() < 2 * DAY);
   const parts = [];

@@ -11,6 +11,11 @@ contextBridge.exposeInMainWorld('asistente', {
   moodleConnectPassword: (user, pass) => ipcRenderer.invoke('moodle-connect-password', user, pass),
   moodleConnectBrowser: () => ipcRenderer.invoke('moodle-connect-browser'),
   moodleDisconnect: () => ipcRenderer.invoke('moodle-disconnect'),
+  setSheetUrl: (url) => ipcRenderer.invoke('set-sheet-url', url),
+  aiSetKey: (which, key) => ipcRenderer.invoke('ai-set-key', which, key),
+  aiSetProvider: (p) => ipcRenderer.invoke('ai-set-provider', p),
+  aiChat: (history) => ipcRenderer.invoke('ai-chat', history),
+  aiBriefing: () => ipcRenderer.invoke('ai-briefing'),
   setReminders: (times) => ipcRenderer.invoke('set-reminders', times),
   setAutostart: (on) => ipcRenderer.invoke('set-autostart', on),
   onData: (cb) => ipcRenderer.on('data', (_e, data) => cb(data))

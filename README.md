@@ -4,6 +4,8 @@ App de escritorio (Windows y Mac) que vive en la bandeja del sistema y junta en 
 
 - **Tareas de la escuela** de Google Classroom y de Moodle (ej. `tonala-virtual.ceti.mx`), ordenadas por fecha de entrega.
 - **Calendario** de hoy y mañana, **pendientes** de Google Tasks, **correos sin leer** y **archivos recientes** de Drive.
+- **Hoja de pendientes** de Google Sheets (por ejemplo, pendientes del trabajo).
+- **Asistente con IA** (Claude o Gemini): te arma un resumen cada mañana y le puedes preguntar cosas como "¿qué entrego esta semana?".
 - **Recordatorios diarios** como notificación del sistema (por defecto 7:00 y 20:00) y un aviso cuando una tarea vence en menos de 24 horas.
 
 Arranca sola al prender la PC (en segundo plano) y al cerrar la ventana sigue funcionando en la bandeja.
@@ -24,13 +26,28 @@ Para generar el instalador: `npm run build:win` (Windows) o `npm run build:mac` 
 Google exige que cada app tenga su propio "cliente OAuth". Es gratis:
 
 1. Entra a <https://console.cloud.google.com>, crea un proyecto (ej. "Asistente de Vida").
-2. En **APIs y servicios → Biblioteca**, habilita: Gmail API, Google Calendar API, Google Tasks API, Google Drive API y Google Classroom API.
+2. En **APIs y servicios → Biblioteca**, habilita: Gmail API, Google Calendar API, Google Tasks API, Google Drive API, Google Classroom API y Google Sheets API.
 3. En **Pantalla de consentimiento de OAuth**, elige "Externo", llena el nombre y agrega tu correo como **usuario de prueba**.
 4. En **Credenciales → Crear credenciales → ID de cliente de OAuth**, elige **App de escritorio**.
 5. Descarga el JSON y guárdalo como `credentials/google-credentials.json` dentro de esta carpeta.
 6. Abre la app → **Conexiones → Conectar con Google** y acepta los permisos en tu navegador.
 
 Si tu Classroom es de una cuenta de la escuela, conéctate con esa cuenta (o agrégala como usuario de prueba).
+
+Si ya habías conectado Google antes de la Fase 2, dale **Desconectar** y **Conectar con Google** otra vez para aceptar el permiso nuevo de Sheets.
+
+## Hoja de pendientes (Google Sheets)
+
+Crea una hoja con tres columnas: **Tarea**, **Fecha** y **Hecho**. Pega su link en **Conexiones → Google**. Las filas con "sí", "x" o "listo" en *Hecho* no aparecen.
+
+## Asistente (Claude o Gemini)
+
+En **Conexiones → Asistente** eliges cuál usar y pegas su clave de API:
+
+- **Claude:** crea una clave en <https://platform.claude.com> (Settings → API keys). Se cobra por uso; preguntas cortas cuestan centavos. Usa Claude Opus 5.5 con esfuerzo bajo, y si Claude rechaza algo por seguridad, la API reintenta sola con otro modelo.
+- **Gemini:** crea una clave gratis en <https://aistudio.google.com/apikey>.
+
+Cada mañana (desde las 5:00, en cuanto la PC esté prendida) el asistente arma tu resumen y lo usa en la notificación de las 7:00. También puedes pedirlo con **Generar resumen de hoy** en la pestaña Asistente.
 
 ## Conectar la escuela (Moodle)
 
@@ -47,6 +64,6 @@ En **Conexiones** hay dos opciones:
 
 ## Próximas fases
 
-- **Fase 2:** asistente con Claude (resumen de la mañana y preguntas en lenguaje natural) y Gemini; Google Sheets.
+- ~~**Fase 2:** asistente con Claude y Gemini; Google Sheets.~~ Listo.
 - **Fase 3:** notificaciones en el celular (Android ahora, iPhone después) y luego una app móvil sincronizada.
 - **Fase 4:** Canva y más integraciones.

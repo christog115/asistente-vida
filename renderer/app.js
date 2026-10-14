@@ -78,6 +78,13 @@ function render(data) {
   renderList($('tasks'), data.tasks,
     (t) => item({ title: t.title, meta: t.list + (t.due ? ' · ' + fmtDate(t.due, true) : ''), cls: dueClass(t.due) }),
     'Sin pendientes.');
+  const b = data.briefing;
+  $('briefing').textContent = b && b.date === new Date().toDateString()
+    ? b.text
+    : 'Conecta Claude o Gemini en "Conexiones" y aquí verás tu resumen cada mañana.';
+  renderList($('sheet'), data.sheet,
+    (t) => item({ title: t.title, meta: t.due ? 'para ' + t.due : 'sin fecha', url: t.url }),
+    'Todo hecho en tu hoja.');
   renderList($('emails'), data.emails,
     (m) => item({ title: m.subject, meta: m.from, url: m.url }), 'Bandeja al día.');
   renderList($('files'), data.files,
@@ -91,6 +98,68 @@ async function renderStatus() {
   $('moodle-url').value = s.moodleUrl;
   $('reminder-times').value = s.reminderTimes.join(', ');
   $('autostart').checked = s.autoStart;
+  $('sheet-url').value = s.sheetUrl;
+  $('claude-status').textContent = STATUS_TEXT[s.ai.claude];
+  $('gemini-status').textContent = STATUS_TEXT[s.ai.gemini];
+  document.querySelectorAll('input[name=provider]').forEach((r) => { r.checked = r.value === s.ai.provider; });
+}
+
+// --- Chat con el asistente ---
+const chatHistory = [];
+
+function addMsg(role, text) {
+  const e = document.createElement('div');
+  e.className = 'msg ' + role;
+  e.textContent = text;
+  $('chat-log').append(e);
+  e.scrollIntoView({ block: 'end' });
+  return e;
+}
+
+function cleanError(err) {
+  return err.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
+}
+
+$('chat-form').onsubmit = async (e) => {
+  e.preventDefault();
+  const text = $('chat-input').value.trim();
+  if (!text) return;
+  $('chat-input').value = '';
+  addMsg('user', text);
+  chatHistory.push({ role: 'user', content: text });
+  const pending = addMsg('assistant', 'Pensando…');
+  try {
+    const answer = await api.aiChat(chatHistory);
+    pending.textContent = answer;
+    chatHistory.push({ role: 'assistant', content: answer });
+  } catch (err) {
+    pending.textContent = 'Error: ' + cleanError(err);
+    chatHistory.pop();
+  }
+};
+
+$('new-briefing').onclick = async () => {
+  const pending = addMsg('assistant', 'Armando tu resumen…');
+  try {
+    const data = await api.aiBriefing();
+    pending.textContent = data.briefing.text;
+    render(data);
+  } catch (err) {
+    pending.textContent = 'Error: ' + cleanError(err);
+  }
+};
+
+$('sheet-url').onchange = (e) => run(() => api.setSheetUrl(e.target.value.trim()), 'Hoja guardada.');
+document.querySelectorAll('input[name=provider]').forEach((r) => {
+  r.onchange = () => run(() => api.aiSetProvider(r.value), 'Asistente: ' + (r.value === 'gemini' ? 'Gemini' : 'Claude'));
+});
+for (const which of ['claude', 'gemini']) {
+  $(which + '-form').onsubmit = (e) => {
+    e.preventDefault();
+    const key = $(which + '-key').value;
+    $(which + '-key').value = '';
+    run(() => api.aiSetKey(which, key), 'Clave guardada.');
+  };
 }
 
 async function run(fn, okText) {
@@ -100,7 +169,7 @@ async function run(fn, okText) {
     if (data && data.updatedAt) render(data);
     $('message').textContent = okText;
   } catch (err) {
-    $('message').textContent = 'Error: ' + err.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
+    $('message').textContent = 'Error: ' + cleanError(err);
   }
   renderStatus();
 }

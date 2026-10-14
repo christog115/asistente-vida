@@ -14,12 +14,17 @@
     </div>
     <nav>
       <button data-view="tablero" class="tab active">Tablero</button>
+      <button data-view="asistente" class="tab">Asistente</button>
       <button data-view="ajustes" class="tab">Conexiones</button>
       <button id="refresh" title="Actualizar">↻</button>
     </nav>
   </header>
 
   <main id="tablero" class="view">
+    <section class="card wide briefing">
+      <h2>Resumen del asistente</h2>
+      <p id="briefing" class="muted"></p>
+    </section>
     <section class="card wide">
       <h2>Tareas de la escuela</h2>
       <ul id="school" class="list"></ul>
@@ -33,12 +38,29 @@
       <ul id="tasks" class="list"></ul>
     </section>
     <section class="card">
+      <h2>Hoja de pendientes</h2>
+      <ul id="sheet" class="list"></ul>
+    </section>
+    <section class="card">
       <h2>Correos sin leer</h2>
       <ul id="emails" class="list"></ul>
     </section>
     <section class="card">
       <h2>Archivos recientes de Drive</h2>
       <ul id="files" class="list"></ul>
+    </section>
+  </main>
+
+  <main id="asistente" class="view chat-view hidden">
+    <section class="card chat">
+      <div id="chat-log" class="chat-log">
+        <p class="muted">Pregúntame lo que quieras sobre tus tareas, tu calendario o tus correos. Por ejemplo: "¿Qué entrego esta semana?"</p>
+      </div>
+      <form id="chat-form" class="chat-form">
+        <input id="chat-input" placeholder="Escribe tu pregunta…" autocomplete="off">
+        <button type="submit">Enviar</button>
+      </form>
+      <button id="new-briefing" class="ghost">Generar resumen de hoy</button>
     </section>
   </main>
 
@@ -49,6 +71,26 @@
       <p>Estado: <strong id="google-status"></strong></p>
       <button id="google-connect">Conectar con Google</button>
       <button id="google-disconnect" class="ghost">Desconectar</button>
+      <h3>Hoja de pendientes (Google Sheets)</h3>
+      <p class="muted">Pega el link de una hoja con columnas Tarea, Fecha y Hecho.</p>
+      <input id="sheet-url" type="url" placeholder="https://docs.google.com/spreadsheets/d/…">
+    </section>
+
+    <section class="card">
+      <h2>Asistente</h2>
+      <p class="muted">Elige qué inteligencia usa el asistente. Las claves se guardan cifradas en tu PC.</p>
+      <label class="row"><input type="radio" name="provider" value="claude"> Claude</label>
+      <label class="row"><input type="radio" name="provider" value="gemini"> Gemini</label>
+      <h3>Claude <small id="claude-status" class="muted"></small></h3>
+      <form id="claude-form" class="inline-form">
+        <input id="claude-key" type="password" placeholder="Clave de API de Claude (sk-ant-…)" autocomplete="off">
+        <button type="submit">Guardar</button>
+      </form>
+      <h3>Gemini <small id="gemini-status" class="muted"></small></h3>
+      <form id="gemini-form" class="inline-form">
+        <input id="gemini-key" type="password" placeholder="Clave de API de Gemini" autocomplete="off">
+        <button type="submit">Guardar</button>
+      </form>
     </section>
 
     <section class="card">

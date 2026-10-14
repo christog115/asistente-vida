@@ -12,6 +12,8 @@
     "build:mac": "electron-builder --mac"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.133.0",
+    "@google/genai": "^2.29.1",
     "googleapis": "^185.0.0"
   },
   "devDependencies": {
@@ -21,8 +23,17 @@
   "build": {
     "appId": "mx.christopher.asistente-vida",
     "productName": "Asistente de Vida",
-    "files": ["main.js", "preload.js", "src/**", "renderer/**"],
-    "win": { "target": "nsis" },
-    "mac": { "target": "dmg" }
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**",
+      "renderer/**"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    }
   }
 }
