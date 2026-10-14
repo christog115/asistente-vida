@@ -1,0 +1,68 @@
+:root {
+  --bg: #f5f6f8;
+  --card: #ffffff;
+  --text: #1c1f24;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --accent: #2563eb;
+  --soon: #b45309;
+  --overdue: #b91c1c;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111317;
+    --card: #1a1d23;
+    --text: #e8eaed;
+    --muted: #9aa0a6;
+    --border: #2b2f36;
+    --accent: #6ea8fe;
+    --soon: #f59e0b;
+    --overdue: #f87171;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font: 14px/1.45 "Segoe UI", system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+header {
+  display: flex; justify-content: space-between; align-items: center; gap: 16px;
+  padding: 20px 28px; border-bottom: 1px solid var(--border);
+}
+h1 { margin: 0; font-size: 22px; }
+h2 { margin: 0 0 10px; font-size: 15px; }
+h3 { margin: 16px 0 4px; font-size: 13px; }
+.muted { color: var(--muted); }
+nav { display: flex; gap: 8px; }
+button {
+  font: inherit; padding: 7px 14px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--accent); background: var(--accent); color: #fff;
+}
+button.ghost, .tab, #refresh { background: transparent; color: var(--text); border-color: var(--border); }
+.tab.active { border-color: var(--accent); color: var(--accent); }
+.view {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px; padding: 20px 28px;
+}
+.hidden { display: none; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+.card.wide { grid-column: 1 / -1; }
+.list { list-style: none; margin: 0; padding: 0; }
+.list li { padding: 8px 0; border-top: 1px solid var(--border); display: flex; flex-direction: column; }
+.list li:first-child { border-top: 0; }
+.list a { color: var(--text); text-decoration: none; font-weight: 500; }
+.list a:hover { color: var(--accent); }
+.list small { color: var(--muted); }
+.list li.soon small { color: var(--soon); }
+.list li.overdue small { color: var(--overdue); }
+label { display: block; margin: 8px 0; }
+label.row { display: flex; gap: 8px; align-items: center; }
+input {
+  font: inherit; padding: 7px 10px; border-radius: 8px; width: 100%;
+  border: 1px solid var(--border); background: var(--bg); color: var(--text);
+}
+input[type=checkbox] { width: auto; }
+form { display: grid; gap: 8px; }
+#message { grid-column: 1 / -1; }

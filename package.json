@@ -1,0 +1,28 @@
+{
+  "name": "asistente-vida",
+  "version": "0.1.0",
+  "description": "Tablero de vida personal: correo, calendario, tareas de la escuela y recordatorios diarios en una app de escritorio.",
+  "main": "main.js",
+  "author": "Christopher",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac"
+  },
+  "dependencies": {
+    "googleapis": "^185.0.0"
+  },
+  "devDependencies": {
+    "electron": "^44.7.2",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "mx.christopher.asistente-vida",
+    "productName": "Asistente de Vida",
+    "files": ["main.js", "preload.js", "src/**", "renderer/**"],
+    "win": { "target": "nsis" },
+    "mac": { "target": "dmg" }
+  }
+}

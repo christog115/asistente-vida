@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'">
+  <title>Asistente de Vida</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <div>
+      <h1 id="greeting">Hola</h1>
+      <p id="summary" class="muted">Cargando…</p>
+    </div>
+    <nav>
+      <button data-view="tablero" class="tab active">Tablero</button>
+      <button data-view="ajustes" class="tab">Conexiones</button>
+      <button id="refresh" title="Actualizar">↻</button>
+    </nav>
+  </header>
+
+  <main id="tablero" class="view">
+    <section class="card wide">
+      <h2>Tareas de la escuela</h2>
+      <ul id="school" class="list"></ul>
+    </section>
+    <section class="card">
+      <h2>Hoy y mañana</h2>
+      <ul id="events" class="list"></ul>
+    </section>
+    <section class="card">
+      <h2>Pendientes</h2>
+      <ul id="tasks" class="list"></ul>
+    </section>
+    <section class="card">
+      <h2>Correos sin leer</h2>
+      <ul id="emails" class="list"></ul>
+    </section>
+    <section class="card">
+      <h2>Archivos recientes de Drive</h2>
+      <ul id="files" class="list"></ul>
+    </section>
+  </main>
+
+  <main id="ajustes" class="view hidden">
+    <section class="card">
+      <h2>Google</h2>
+      <p class="muted">Gmail, Calendar, Tasks, Drive y Classroom.</p>
+      <p>Estado: <strong id="google-status"></strong></p>
+      <button id="google-connect">Conectar con Google</button>
+      <button id="google-disconnect" class="ghost">Desconectar</button>
+    </section>
+
+    <section class="card">
+      <h2>Plataforma de la escuela (Moodle)</h2>
+      <label>Dirección <input id="moodle-url" type="url"></label>
+      <p>Estado: <strong id="moodle-status"></strong></p>
+      <h3>Opción 1: API oficial (recomendada)</h3>
+      <p class="muted">Tu usuario y contraseña van directo a la escuela; solo se guarda el permiso que la escuela devuelve, cifrado en tu PC.</p>
+      <form id="moodle-form">
+        <input id="moodle-user" placeholder="Usuario o matrícula" autocomplete="username">
+        <input id="moodle-pass" type="password" placeholder="Contraseña" autocomplete="current-password">
+        <button type="submit">Conectar</button>
+      </form>
+      <h3>Opción 2: leer la página</h3>
+      <p class="muted">Si la escuela no permite la opción 1, abre su página, inicia sesión como siempre y cierra la ventana.</p>
+      <button id="moodle-browser">Abrir página de la escuela</button>
+      <button id="moodle-disconnect" class="ghost">Desconectar</button>
+    </section>
+
+    <section class="card">
+      <h2>Recordatorios</h2>
+      <label>Horas del resumen diario (separadas por coma)
+        <input id="reminder-times" placeholder="07:00, 20:00">
+      </label>
+      <label class="row"><input id="autostart" type="checkbox"> Iniciar con el sistema</label>
+      <button id="save-reminders">Guardar</button>
+    </section>
+    <p id="message" class="muted"></p>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
