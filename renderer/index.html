@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:">
   <title>Asistente de Vida</title>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -108,6 +108,24 @@
       <p class="muted">Si la escuela no permite la opción 1, abre su página, inicia sesión como siempre y cierra la ventana.</p>
       <button id="moodle-browser">Abrir página de la escuela</button>
       <button id="moodle-disconnect" class="ghost">Desconectar</button>
+    </section>
+
+    <section class="card">
+      <h2>Celular</h2>
+      <p class="muted">Recibe en tu teléfono el resumen del día y los avisos de tareas que vencen pronto. Usa la app gratis <strong>ntfy</strong> (Android y iPhone), sin cuenta.</p>
+      <p>Estado: <strong id="phone-status"></strong></p>
+      <ol class="muted steps">
+        <li>Instala <strong>ntfy</strong> desde Google Play (o App Store).</li>
+        <li>Toca <strong>Conectar celular</strong> aquí.</li>
+        <li>En ntfy toca <strong>+</strong> y escanea el código (o abre el enlace desde el celular).</li>
+      </ol>
+      <button id="phone-create">Conectar celular</button>
+      <button id="phone-test" class="ghost">Enviar prueba</button>
+      <button id="phone-disable" class="ghost">Desconectar</button>
+      <div id="phone-qr" class="qr hidden">
+        <img id="phone-qr-img" alt="Código QR para ntfy" width="200" height="200">
+        <p class="muted">No compartas este código: quien lo escanee verá tus avisos.</p>
+      </div>
     </section>
 
     <section class="card">

@@ -6,6 +6,7 @@ const google = require('./src/google');
 const moodle = require('./src/moodle');
 const reminders = require('./src/reminders');
 const ai = require('./src/ai');
+const phone = require('./src/phone');
 const store = require('./src/store');
 
 const REFRESH_MS = 15 * 60 * 1000;
@@ -115,7 +116,8 @@ function statuses() {
     reminderTimes: store.get('reminderTimes'),
     autoStart: app.getLoginItemSettings().openAtLogin,
     sheetUrl: store.get('sheetUrl') || '',
-    ai: ai.status()
+    ai: ai.status(),
+    phone: phone.status()
   };
 }
 
@@ -141,6 +143,14 @@ ipcMain.handle('ai-set-key', (_e, which, key) => ai.setKey(which, key));
 ipcMain.handle('ai-set-provider', (_e, p) => ai.setProvider(p));
 ipcMain.handle('ai-chat', (_e, history) => ai.chat(history, latest));
 ipcMain.handle('ai-briefing', () => makeBriefing());
+ipcMain.handle('phone-create', () => { phone.createTopic(); return phone.qr(); });
+ipcMain.handle('phone-qr', () => phone.qr());
+ipcMain.handle('phone-set-enabled', (_e, on) => phone.setEnabled(on));
+ipcMain.handle('phone-set-server', (_e, url) => phone.setServer(url));
+ipcMain.handle('phone-disable', () => phone.disable());
+ipcMain.handle('phone-test', async () => {
+  await phone.send('Asistente de Vida', 'Listo, tu celular ya recibe los avisos.', { tags: ['white_check_mark'] });
+});
 ipcMain.handle('set-reminders', (_e, times) => store.set('reminderTimes', times));
 ipcMain.handle('set-autostart', (_e, on) => {
   app.setLoginItemSettings({ openAtLogin: on, args: ['--hidden'] });

@@ -77,3 +77,7 @@ form { display: grid; gap: 8px; }
 .chat-form, .inline-form { display: flex; gap: 8px; }
 .chat-form input, .inline-form input { flex: 1; }
 #new-briefing { align-self: flex-start; }
+
+.steps { padding-left: 20px; margin: 8px 0 12px; }
+.qr { margin-top: 12px; }
+.qr img { background: #fff; padding: 8px; border-radius: 8px; border: 1px solid var(--border); }

@@ -99,6 +99,9 @@ async function renderStatus() {
   $('reminder-times').value = s.reminderTimes.join(', ');
   $('autostart').checked = s.autoStart;
   $('sheet-url').value = s.sheetUrl;
+  hasPhoneTopic = s.phone.hasTopic;
+  $('phone-status').textContent = s.phone.enabled ? 'Conectado' : s.phone.hasTopic ? 'Pausado' : 'Sin conectar';
+  if (!s.phone.hasTopic) $('phone-qr').classList.add('hidden');
   $('claude-status').textContent = STATUS_TEXT[s.ai.claude];
   $('gemini-status').textContent = STATUS_TEXT[s.ai.gemini];
   document.querySelectorAll('input[name=provider]').forEach((r) => { r.checked = r.value === s.ai.provider; });
@@ -148,6 +151,20 @@ $('new-briefing').onclick = async () => {
     pending.textContent = 'Error: ' + cleanError(err);
   }
 };
+
+let hasPhoneTopic = false;
+
+function showQr(qr) {
+  if (!qr) return;
+  $('phone-qr-img').src = qr.image;
+  $('phone-qr').classList.remove('hidden');
+}
+// Si ya hay un tema, se vuelve a mostrar el mismo código; uno nuevo se crea tras Desconectar.
+$('phone-create').onclick = () => run(async () => {
+  showQr(await (hasPhoneTopic ? api.phoneQr() : api.phoneCreate()));
+}, 'Escanea el código con la app ntfy.');
+$('phone-test').onclick = () => run(() => api.phoneTest(), 'Prueba enviada: revisa tu celular.');
+$('phone-disable').onclick = () => run(() => api.phoneDisable(), 'Celular desconectado.');
 
 $('sheet-url').onchange = (e) => run(() => api.setSheetUrl(e.target.value.trim()), 'Hoja guardada.');
 document.querySelectorAll('input[name=provider]').forEach((r) => {

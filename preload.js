@@ -16,6 +16,12 @@ contextBridge.exposeInMainWorld('asistente', {
   aiSetProvider: (p) => ipcRenderer.invoke('ai-set-provider', p),
   aiChat: (history) => ipcRenderer.invoke('ai-chat', history),
   aiBriefing: () => ipcRenderer.invoke('ai-briefing'),
+  phoneCreate: () => ipcRenderer.invoke('phone-create'),
+  phoneQr: () => ipcRenderer.invoke('phone-qr'),
+  phoneSetEnabled: (on) => ipcRenderer.invoke('phone-set-enabled', on),
+  phoneSetServer: (url) => ipcRenderer.invoke('phone-set-server', url),
+  phoneDisable: () => ipcRenderer.invoke('phone-disable'),
+  phoneTest: () => ipcRenderer.invoke('phone-test'),
   setReminders: (times) => ipcRenderer.invoke('set-reminders', times),
   setAutostart: (on) => ipcRenderer.invoke('set-autostart', on),
   onData: (cb) => ipcRenderer.on('data', (_e, data) => cb(data))

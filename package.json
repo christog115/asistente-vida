@@ -14,7 +14,8 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",
     "@google/genai": "^2.29.1",
-    "googleapis": "^185.0.0"
+    "googleapis": "^185.0.0",
+    "qrcode": "^1.5.4"
   },
   "devDependencies": {
     "electron": "^44.7.2",

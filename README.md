@@ -7,6 +7,7 @@ App de escritorio (Windows y Mac) que vive en la bandeja del sistema y junta en 
 - **Hoja de pendientes** de Google Sheets (por ejemplo, pendientes del trabajo).
 - **Asistente con IA** (Claude o Gemini): te arma un resumen cada mañana y le puedes preguntar cosas como "¿qué entrego esta semana?".
 - **Recordatorios diarios** como notificación del sistema (por defecto 7:00 y 20:00) y un aviso cuando una tarea vence en menos de 24 horas.
+- **Avisos en el celular** (Android o iPhone): los mismos recordatorios llegan a tu teléfono.
 
 Arranca sola al prender la PC (en segundo plano) y al cerrar la ventana sigue funcionando en la bandeja.
 
@@ -49,6 +50,20 @@ En **Conexiones → Asistente** eliges cuál usar y pegas su clave de API:
 
 Cada mañana (desde las 5:00, en cuanto la PC esté prendida) el asistente arma tu resumen y lo usa en la notificación de las 7:00. También puedes pedirlo con **Generar resumen de hoy** en la pestaña Asistente.
 
+## Avisos en el celular
+
+Usa [ntfy](https://ntfy.sh), una app gratis (Google Play / App Store) que recibe notificaciones sin crear cuenta:
+
+1. Instala **ntfy** en tu celular.
+2. En la app de escritorio: **Conexiones → Celular → Conectar celular**. Aparece un código QR.
+3. En ntfy toca **+** y escanea el código (o abre el enlace).
+4. Toca **Enviar prueba**: debe sonar tu celular.
+
+Recibes lo mismo que en la PC: el resumen del día y el aviso cuando una tarea vence en menos de 24 horas.
+
+- El nombre del tema es largo y aleatorio, se guarda cifrado y solo se ve como QR en tu pantalla. Quien lo escanee puede leer tus avisos; si lo compartes sin querer, dale **Desconectar** y **Conectar celular** para generar uno nuevo.
+- Los avisos se mandan desde la PC, así que la app debe estar prendida. Si algún día quieres tu propio servidor ntfy, la dirección está en `config.json` (`phone.server`).
+
 ## Conectar la escuela (Moodle)
 
 En **Conexiones** hay dos opciones:
@@ -65,5 +80,6 @@ En **Conexiones** hay dos opciones:
 ## Próximas fases
 
 - ~~**Fase 2:** asistente con Claude y Gemini; Google Sheets.~~ Listo.
-- **Fase 3:** notificaciones en el celular (Android ahora, iPhone después) y luego una app móvil sincronizada.
+- ~~**Fase 3:** avisos en el celular.~~ Listo.
+- **Fase 3b:** app móvil que se sincronice con la de la PC (ver el tablero y preguntarle al asistente desde el celular).
 - **Fase 4:** Canva y más integraciones.
