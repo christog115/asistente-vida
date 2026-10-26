@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; worker-src blob:; connect-src 'self' voz: data:">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; img-src 'self' data:; worker-src blob:; connect-src 'self' voz: data:">
   <title>Asistente de Vida</title>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -109,6 +109,53 @@
       <p class="muted">Si la escuela no permite la opción 1, abre su página, inicia sesión como siempre y cierra la ventana.</p>
       <button id="moodle-browser">Abrir página de la escuela</button>
       <button id="moodle-disconnect" class="ghost">Desconectar</button>
+    </section>
+
+    <section class="card">
+      <h2>Celular</h2>
+      <p class="muted">Recibe en tu teléfono el resumen del día y los avisos de tareas que vencen pronto. Usa la app gratis <strong>ntfy</strong> (Android y iPhone), sin cuenta.</p>
+      <p>Estado: <strong id="phone-status"></strong></p>
+      <ol class="muted steps">
+        <li>Instala <strong>ntfy</strong> desde Google Play (o App Store).</li>
+        <li>Aquí toca <strong>Conectar celular</strong>: aparece el nombre del tema.</li>
+        <li>En ntfy toca <strong>+</strong>, escribe ese nombre en <strong>Topic name</strong> (déjalo en el servidor ntfy.sh) y toca <strong>Subscribe</strong>.</li>
+        <li>Aquí toca <strong>Enviar prueba</strong>: debe sonar tu celular.</li>
+      </ol>
+      <button id="phone-create">Conectar celular</button>
+      <button id="phone-test" class="ghost">Enviar prueba</button>
+      <button id="phone-disable" class="ghost">Desconectar</button>
+      <div id="phone-qr" class="qr hidden">
+        <p class="muted">Nombre del tema (escríbelo tal cual, con los guiones):</p>
+        <div class="topic-row">
+          <code id="phone-topic" class="topic"></code>
+          <button id="phone-copy" class="ghost">Copiar</button>
+        </div>
+        <details>
+          <summary class="muted">¿Prefieres escanear?</summary>
+          <p class="muted">Si la cámara de tu celular abre el enlace en ntfy, con esto te suscribes sin escribir nada.</p>
+          <img id="phone-qr-img" alt="Código QR para ntfy" width="200" height="200">
+        </details>
+        <p class="muted">No lo compartas: quien conozca el nombre verá tus avisos.</p>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>App del celular</h2>
+      <p class="muted">Ve tu tablero y habla con el asistente desde la app del celular. Se conecta directo con tu PC (por tu Wi-Fi o con Tailscale), sin servidores en medio. La PC debe estar prendida.</p>
+      <p>Estado: <strong id="mobile-status"></strong></p>
+      <p id="mobile-error" class="error"></p>
+      <button id="mobile-toggle">Activar</button>
+      <button id="mobile-pair" class="ghost hidden">Emparejar celular</button>
+      <div id="mobile-pairing" class="qr hidden">
+        <p class="muted">En la app del celular escanea el código o escribe estos datos:</p>
+        <div class="topic-row"><code id="mobile-code" class="topic"></code></div>
+        <p class="muted" id="mobile-urls"></p>
+        <img id="mobile-qr-img" alt="Código QR para emparejar" width="200" height="200">
+        <p class="muted">Vale 10 minutos y una sola vez.</p>
+      </div>
+      <div id="mobile-addresses" class="muted hidden"></div>
+      <h3 class="mobile-devices-title hidden">Celulares emparejados</h3>
+      <ul id="mobile-devices" class="list"></ul>
     </section>
 
     <section class="card">

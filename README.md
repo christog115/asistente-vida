@@ -7,6 +7,8 @@ App de escritorio (Windows y Mac) que vive en la bandeja del sistema y junta en 
 - **Hoja de pendientes** de Google Sheets (por ejemplo, pendientes del trabajo).
 - **Asistente con IA** (Claude o Gemini): te arma un resumen cada mañana y le puedes preguntar cosas como "¿qué entrego esta semana?".
 - **Recordatorios diarios** como notificación del sistema (por defecto 7:00 y 20:00) y un aviso cuando una tarea vence en menos de 24 horas.
+- **Avisos en el celular** (Android o iPhone): los mismos recordatorios llegan a tu teléfono.
+- **App del celular** (carpeta `mobile/`): ve el tablero y habla con el asistente desde el teléfono, en casa o fuera con Tailscale.
 
 Arranca sola al prender la PC (en segundo plano) y al cerrar la ventana sigue funcionando en la bandeja.
 
@@ -49,6 +51,28 @@ En **Conexiones → Asistente** eliges cuál usar y pegas su clave de API:
 
 Cada mañana (desde las 5:00, en cuanto la PC esté prendida) el asistente arma tu resumen y lo usa en la notificación de las 7:00. También puedes pedirlo con **Generar resumen de hoy** en la pestaña Asistente.
 
+## Avisos en el celular
+
+Usa [ntfy](https://ntfy.sh), una app gratis (Google Play / App Store) que recibe notificaciones sin crear cuenta:
+
+1. Instala **ntfy** en tu celular.
+2. En la app de escritorio: **Conexiones → Celular → Conectar celular**. Aparece el **nombre del tema** (algo como `k7m2-x9pq-4rtd-hw5n`).
+3. En ntfy toca **+**, escribe ese nombre en *Topic name* (deja el servidor ntfy.sh) y toca **Subscribe**. Si tu cámara abre enlaces `ntfy://`, también puedes escanear el QR que aparece bajo "¿Prefieres escanear?".
+4. De vuelta en la PC toca **Enviar prueba**: debe sonar tu celular.
+
+Recibes lo mismo que en la PC: el resumen del día y el aviso cuando una tarea vence en menos de 24 horas.
+
+- El nombre del tema es largo y aleatorio, se guarda cifrado y solo se ve en tu pantalla. Quien conozca el nombre puede leer tus avisos; si lo compartes sin querer, dale **Desconectar** y **Conectar celular** para generar uno nuevo.
+- Los avisos se mandan desde la PC, así que la app debe estar prendida. Si algún día quieres tu propio servidor ntfy, la dirección está en `config.json` (`phone.server`).
+
+## App del celular
+
+La app está en [`mobile/`](mobile/README.md) (Android ahora, iPhone después). La PC activa un servidor local, **Conexiones → App del celular → Activar**, y el celular se empareja con un código de 6 números o un QR. Para usarla fuera de casa instala Tailscale (gratis) en la PC y el celular; la guía paso a paso, con la instalación del APK, está en [`mobile/README.md`](mobile/README.md).
+
+- Solo los celulares emparejados pueden pedir datos; la PC guarda únicamente una huella de cada clave y los puedes quitar cuando quieras.
+- El código de emparejamiento vale 10 minutos y una vez; 5 intentos fallidos lo invalidan y bloquean un minuto.
+- Todo va directo PC ↔ celular, sin servidores en medio. La PC debe estar prendida.
+
 ## Conectar la escuela (Moodle)
 
 En **Conexiones** hay dos opciones:
@@ -65,5 +89,6 @@ En **Conexiones** hay dos opciones:
 ## Próximas fases
 
 - ~~**Fase 2:** asistente con Claude y Gemini; Google Sheets.~~ Listo.
-- **Fase 3:** notificaciones en el celular (Android ahora, iPhone después) y luego una app móvil sincronizada.
+- ~~**Fase 3:** avisos en el celular.~~ Listo.
+- ~~**Fase 3b:** app del celular que se conecta a la PC.~~ Lista para probar (falta compilar el APK y probarla en un celular real).
 - **Fase 4:** Canva y más integraciones.

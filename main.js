@@ -7,6 +7,8 @@ const moodle = require('./src/moodle');
 const reminders = require('./src/reminders');
 const ai = require('./src/ai');
 const voice = require('./src/voice');
+const phone = require('./src/phone');
+const mobile = require('./src/mobile');
 const store = require('./src/store');
 
 const REFRESH_MS = 15 * 60 * 1000;
@@ -129,7 +131,9 @@ function statuses() {
     reminderTimes: store.get('reminderTimes'),
     autoStart: app.getLoginItemSettings(loginItem()).openAtLogin,
     sheetUrl: store.get('sheetUrl') || '',
-    ai: ai.status()
+    ai: ai.status(),
+    phone: phone.status(),
+    mobile: mobile.status()
   };
 }
 
@@ -162,6 +166,17 @@ ipcMain.handle('voice-prepare', () => voice.ensureModel((pct) => {
 ipcMain.handle('voice-state', (_e, text) => { if (tray) tray.setToolTip('Asistente de Vida · ' + text); });
 ipcMain.handle('show-window', () => showWindow());
 ipcMain.handle('ai-briefing', () => makeBriefing());
+ipcMain.handle('phone-create', () => { phone.createTopic(); return phone.pairing(); });
+ipcMain.handle('phone-qr', () => phone.pairing());
+ipcMain.handle('phone-set-enabled', (_e, on) => phone.setEnabled(on));
+ipcMain.handle('phone-set-server', (_e, url) => phone.setServer(url));
+ipcMain.handle('phone-disable', () => phone.disable());
+ipcMain.handle('phone-test', async () => {
+  await phone.send('Asistente de Vida', 'Listo, tu celular ya recibe los avisos.', { tags: ['white_check_mark'] });
+});
+ipcMain.handle('mobile-set-enabled', (_e, on) => { mobile.setEnabled(on); return mobile.status(); });
+ipcMain.handle('mobile-start-pairing', () => mobile.startPairing());
+ipcMain.handle('mobile-revoke', (_e, id) => { mobile.revoke(id); return mobile.status(); });
 ipcMain.handle('set-reminders', (_e, times) => store.set('reminderTimes', times));
 ipcMain.handle('set-autostart', (_e, on) => {
   app.setLoginItemSettings(loginItem(on));
@@ -178,6 +193,11 @@ app.whenReady().then(() => {
   // El micrófono solo se permite a la ventana del tablero.
   session.defaultSession.setPermissionRequestHandler((wc, permission, cb) => {
     cb(permission !== 'media' || (win && wc === win.webContents));
+  });
+  mobile.start({
+    getData: async () => latest || refresh(),
+    refresh,
+    chat: (history) => ai.chat(history, latest)
   });
   createWindow();
   globalShortcut.register(VOICE_SHORTCUT, () => win && win.webContents.send('voice-activate'));

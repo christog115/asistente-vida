@@ -99,6 +99,10 @@ async function renderStatus() {
   $('reminder-times').value = s.reminderTimes.join(', ');
   $('autostart').checked = s.autoStart;
   $('sheet-url').value = s.sheetUrl;
+  renderMobile(s.mobile);
+  hasPhoneTopic = s.phone.hasTopic;
+  $('phone-status').textContent = s.phone.enabled ? 'Conectado' : s.phone.hasTopic ? 'Pausado' : 'Sin conectar';
+  if (!s.phone.hasTopic) $('phone-qr').classList.add('hidden');
   $('claude-status').textContent = STATUS_TEXT[s.ai.claude];
   $('gemini-status').textContent = STATUS_TEXT[s.ai.gemini];
   document.querySelectorAll('input[name=provider]').forEach((r) => { r.checked = r.value === s.ai.provider; });
@@ -148,6 +152,66 @@ $('new-briefing').onclick = async () => {
     pending.textContent = 'Error: ' + cleanError(err);
   }
 };
+
+let hasPhoneTopic = false;
+let mobileEnabled = false;
+let pairTimer = null;
+
+function renderMobile(m) {
+  mobileEnabled = m.enabled;
+  $('mobile-status').textContent = !m.enabled ? 'Apagado' : m.running ? 'Listo para emparejar' : 'Iniciando…';
+  $('mobile-error').textContent = m.error || '';
+  $('mobile-toggle').textContent = m.enabled ? 'Apagar' : 'Activar';
+  $('mobile-toggle').classList.toggle('ghost', m.enabled);
+  $('mobile-pair').classList.toggle('hidden', !m.enabled);
+  const addr = $('mobile-addresses');
+  addr.classList.toggle('hidden', !m.enabled || !m.addresses.length);
+  addr.textContent = 'Direcciones de esta PC: ' + m.addresses.map((a) => a.url + (a.tailscale ? ' (Tailscale)' : '')).join(' · ');
+  if (!m.enabled || !m.pairing) $('mobile-pairing').classList.add('hidden');
+  document.querySelector('.mobile-devices-title').classList.toggle('hidden', !m.devices.length);
+  const list = $('mobile-devices');
+  list.replaceChildren();
+  for (const d of m.devices) {
+    const e = li('', 'devices-row');
+    const name = document.createElement('span');
+    name.textContent = d.name + (d.lastSeen ? ' · visto ' + fmtDate(d.lastSeen) : ' · aún sin usar');
+    const del = document.createElement('button');
+    del.className = 'ghost';
+    del.textContent = 'Quitar';
+    del.onclick = () => run(() => api.mobileRevoke(d.id), 'Celular quitado.');
+    e.append(name, del);
+    list.append(e);
+  }
+  // Mientras hay un código vigente se revisa seguido para ver cuándo se empareja.
+  if (m.pairing && !pairTimer) pairTimer = setInterval(renderStatus, 3000);
+  if (!m.pairing && pairTimer) { clearInterval(pairTimer); pairTimer = null; }
+}
+
+$('mobile-toggle').onclick = () => run(() => api.mobileSetEnabled(!mobileEnabled), 'Listo.');
+$('mobile-pair').onclick = () => run(async () => {
+  const p = await api.mobileStartPairing();
+  $('mobile-code').textContent = p.code;
+  $('mobile-urls').textContent = 'Dirección: ' + (p.urls.join(' o ') || 'sin red');
+  $('mobile-qr-img').src = p.image;
+  $('mobile-pairing').classList.remove('hidden');
+}, 'Abre la app del celular y empareja.');
+
+function showQr(qr) {
+  if (!qr) return;
+  $('phone-topic').textContent = qr.topic;
+  $('phone-qr-img').src = qr.image;
+  $('phone-qr').classList.remove('hidden');
+}
+// Si ya hay un tema, se vuelve a mostrar el mismo código; uno nuevo se crea tras Desconectar.
+$('phone-create').onclick = () => run(async () => {
+  showQr(await (hasPhoneTopic ? api.phoneQr() : api.phoneCreate()));
+}, 'Escribe el nombre del tema en la app ntfy.');
+$('phone-copy').onclick = async () => {
+  await navigator.clipboard.writeText($('phone-topic').textContent);
+  $('message').textContent = 'Nombre copiado.';
+};
+$('phone-test').onclick = () => run(() => api.phoneTest(), 'Prueba enviada: revisa tu celular.');
+$('phone-disable').onclick = () => run(() => api.phoneDisable(), 'Celular desconectado.');
 
 $('sheet-url').onchange = (e) => run(() => api.setSheetUrl(e.target.value.trim()), 'Hoja guardada.');
 document.querySelectorAll('input[name=provider]').forEach((r) => {

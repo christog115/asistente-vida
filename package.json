@@ -16,6 +16,7 @@
     "@google/genai": "^2.29.1",
     "adm-zip": "^0.5.18",
     "googleapis": "^185.0.0",
+    "qrcode": "^1.5.4",
     "tar": "^7.5.22",
     "vosk-browser": "^0.0.8"
   },
