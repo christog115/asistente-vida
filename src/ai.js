@@ -96,9 +96,13 @@ async function askGemini(system, messages) {
   }
 }
 
+const VOICE = `Esta respuesta se va a leer en voz alta: contesta en una a tres
+frases cortas, sin listas, sin markdown, sin emojis y sin links.`;
+
 // history: [{ role: 'user' | 'assistant', content: string }]
-async function chat(history, data) {
-  const system = `${SYSTEM}\n\nDatos actuales:\n${context(data)}`;
+// opts.voice: la pregunta llegó por voz y la respuesta se va a hablar.
+async function chat(history, data, opts = {}) {
+  const system = `${SYSTEM}${opts.voice ? '\n\n' + VOICE : ''}\n\nDatos actuales:\n${context(data)}`;
   return provider() === 'gemini' ? askGemini(system, history) : askClaude(system, history);
 }
 

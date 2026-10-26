@@ -1,11 +1,12 @@
 // Proceso principal: ventana del tablero, ícono en la bandeja, arranque con
 // el sistema, actualización periódica y recordatorios.
-const { app, BrowserWindow, Tray, Menu, ipcMain, shell, nativeImage } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, shell, nativeImage, session, globalShortcut } = require('electron');
 const path = require('path');
 const google = require('./src/google');
 const moodle = require('./src/moodle');
 const reminders = require('./src/reminders');
 const ai = require('./src/ai');
+const voice = require('./src/voice');
 const store = require('./src/store');
 
 const REFRESH_MS = 15 * 60 * 1000;
@@ -17,13 +18,25 @@ let quitting = false;
 
 if (!app.requestSingleInstanceLock()) app.quit();
 app.on('second-instance', () => showWindow());
+voice.registerScheme();
+
+// Atajo para hablarle sin decir la palabra clave.
+const VOICE_SHORTCUT = 'CommandOrControl+Shift+J';
+
+// En desarrollo (npm start) Windows tiene que abrir Electron con la carpeta de
+// la app; ya instalada basta con el .exe.
+function loginItem(openAtLogin) {
+  const args = app.isPackaged ? ['--hidden'] : [app.getAppPath(), '--hidden'];
+  return openAtLogin === undefined ? { args } : { openAtLogin, args };
+}
 
 function createWindow() {
   win = new BrowserWindow({
     width: 1200, height: 800, minWidth: 720, minHeight: 520, show: false,
     title: 'Asistente de Vida',
     icon: path.join(__dirname, 'renderer', 'icon.png'),
-    webPreferences: { preload: path.join(__dirname, 'preload.js') }
+    // Sin pausas en segundo plano para que la voz siga escuchando con la ventana escondida.
+    webPreferences: { preload: path.join(__dirname, 'preload.js'), backgroundThrottling: false }
   });
   win.removeMenu();
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
@@ -55,6 +68,7 @@ function createTray() {
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: 'Abrir tablero', click: showWindow },
     { label: 'Actualizar ahora', click: () => refresh() },
+    { label: 'Hablar con el asistente', accelerator: VOICE_SHORTCUT, click: () => win && win.webContents.send('voice-activate') },
     { type: 'separator' },
     { label: 'Salir', click: () => { quitting = true; app.quit(); } }
   ]));
@@ -113,7 +127,7 @@ function statuses() {
     moodle: moodle.status(),
     moodleUrl: store.get('moodle').url,
     reminderTimes: store.get('reminderTimes'),
-    autoStart: app.getLoginItemSettings().openAtLogin,
+    autoStart: app.getLoginItemSettings(loginItem()).openAtLogin,
     sheetUrl: store.get('sheetUrl') || '',
     ai: ai.status()
   };
@@ -139,21 +153,34 @@ ipcMain.handle('moodle-disconnect', () => { moodle.disconnect(); return refresh(
 ipcMain.handle('set-sheet-url', (_e, url) => { store.set('sheetUrl', url); return refresh(); });
 ipcMain.handle('ai-set-key', (_e, which, key) => ai.setKey(which, key));
 ipcMain.handle('ai-set-provider', (_e, p) => ai.setProvider(p));
-ipcMain.handle('ai-chat', (_e, history) => ai.chat(history, latest));
+ipcMain.handle('ai-chat', (_e, history, opts) => ai.chat(history, latest, opts));
+ipcMain.handle('voice-status', () => voice.status());
+ipcMain.handle('voice-set', (_e, changes) => voice.set(changes));
+ipcMain.handle('voice-prepare', () => voice.ensureModel((pct) => {
+  if (win) win.webContents.send('voice-progress', pct);
+}));
+ipcMain.handle('voice-state', (_e, text) => { if (tray) tray.setToolTip('Asistente de Vida · ' + text); });
+ipcMain.handle('show-window', () => showWindow());
 ipcMain.handle('ai-briefing', () => makeBriefing());
 ipcMain.handle('set-reminders', (_e, times) => store.set('reminderTimes', times));
 ipcMain.handle('set-autostart', (_e, on) => {
-  app.setLoginItemSettings({ openAtLogin: on, args: ['--hidden'] });
+  app.setLoginItemSettings(loginItem(on));
 });
 
 app.whenReady().then(() => {
   if (process.platform === 'win32') app.setAppUserModelId('mx.christopher.asistente-vida');
   // La primera vez se activa el arranque con el sistema; luego se respeta lo que elijas.
   if (store.get('autoStartInit') !== true) {
-    app.setLoginItemSettings({ openAtLogin: true, args: ['--hidden'] });
+    app.setLoginItemSettings(loginItem(true));
     store.set('autoStartInit', true);
   }
+  voice.serve();
+  // El micrófono solo se permite a la ventana del tablero.
+  session.defaultSession.setPermissionRequestHandler((wc, permission, cb) => {
+    cb(permission !== 'media' || (win && wc === win.webContents));
+  });
   createWindow();
+  globalShortcut.register(VOICE_SHORTCUT, () => win && win.webContents.send('voice-activate'));
   createTray();
   refresh();
   setInterval(refresh, REFRESH_MS);
@@ -162,5 +189,6 @@ app.whenReady().then(() => {
 
 app.on('activate', showWindow);
 app.on('before-quit', () => { quitting = true; });
+app.on('will-quit', () => globalShortcut.unregisterAll());
 // No salir cuando se cierran las ventanas: la app vive en la bandeja.
 app.on('window-all-closed', () => {});
