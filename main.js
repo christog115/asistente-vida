@@ -7,6 +7,7 @@ const moodle = require('./src/moodle');
 const reminders = require('./src/reminders');
 const ai = require('./src/ai');
 const phone = require('./src/phone');
+const mobile = require('./src/mobile');
 const store = require('./src/store');
 
 const REFRESH_MS = 15 * 60 * 1000;
@@ -117,7 +118,8 @@ function statuses() {
     autoStart: app.getLoginItemSettings().openAtLogin,
     sheetUrl: store.get('sheetUrl') || '',
     ai: ai.status(),
-    phone: phone.status()
+    phone: phone.status(),
+    mobile: mobile.status()
   };
 }
 
@@ -151,6 +153,9 @@ ipcMain.handle('phone-disable', () => phone.disable());
 ipcMain.handle('phone-test', async () => {
   await phone.send('Asistente de Vida', 'Listo, tu celular ya recibe los avisos.', { tags: ['white_check_mark'] });
 });
+ipcMain.handle('mobile-set-enabled', (_e, on) => { mobile.setEnabled(on); return mobile.status(); });
+ipcMain.handle('mobile-start-pairing', () => mobile.startPairing());
+ipcMain.handle('mobile-revoke', (_e, id) => { mobile.revoke(id); return mobile.status(); });
 ipcMain.handle('set-reminders', (_e, times) => store.set('reminderTimes', times));
 ipcMain.handle('set-autostart', (_e, on) => {
   app.setLoginItemSettings({ openAtLogin: on, args: ['--hidden'] });
@@ -163,6 +168,11 @@ app.whenReady().then(() => {
     app.setLoginItemSettings({ openAtLogin: true, args: ['--hidden'] });
     store.set('autoStartInit', true);
   }
+  mobile.start({
+    getData: async () => latest || refresh(),
+    refresh,
+    chat: (history) => ai.chat(history, latest)
+  });
   createWindow();
   createTray();
   refresh();

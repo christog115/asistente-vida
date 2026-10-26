@@ -139,6 +139,25 @@
     </section>
 
     <section class="card">
+      <h2>App del celular</h2>
+      <p class="muted">Ve tu tablero y habla con el asistente desde la app del celular. Se conecta directo con tu PC (por tu Wi-Fi o con Tailscale), sin servidores en medio. La PC debe estar prendida.</p>
+      <p>Estado: <strong id="mobile-status"></strong></p>
+      <p id="mobile-error" class="error"></p>
+      <button id="mobile-toggle">Activar</button>
+      <button id="mobile-pair" class="ghost hidden">Emparejar celular</button>
+      <div id="mobile-pairing" class="qr hidden">
+        <p class="muted">En la app del celular escanea el código o escribe estos datos:</p>
+        <div class="topic-row"><code id="mobile-code" class="topic"></code></div>
+        <p class="muted" id="mobile-urls"></p>
+        <img id="mobile-qr-img" alt="Código QR para emparejar" width="200" height="200">
+        <p class="muted">Vale 10 minutos y una sola vez.</p>
+      </div>
+      <div id="mobile-addresses" class="muted hidden"></div>
+      <h3 class="mobile-devices-title hidden">Celulares emparejados</h3>
+      <ul id="mobile-devices" class="list"></ul>
+    </section>
+
+    <section class="card">
       <h2>Recordatorios</h2>
       <label>Horas del resumen diario (separadas por coma)
         <input id="reminder-times" placeholder="07:00, 20:00">

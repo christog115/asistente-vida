@@ -22,6 +22,9 @@ contextBridge.exposeInMainWorld('asistente', {
   phoneSetServer: (url) => ipcRenderer.invoke('phone-set-server', url),
   phoneDisable: () => ipcRenderer.invoke('phone-disable'),
   phoneTest: () => ipcRenderer.invoke('phone-test'),
+  mobileSetEnabled: (on) => ipcRenderer.invoke('mobile-set-enabled', on),
+  mobileStartPairing: () => ipcRenderer.invoke('mobile-start-pairing'),
+  mobileRevoke: (id) => ipcRenderer.invoke('mobile-revoke', id),
   setReminders: (times) => ipcRenderer.invoke('set-reminders', times),
   setAutostart: (on) => ipcRenderer.invoke('set-autostart', on),
   onData: (cb) => ipcRenderer.on('data', (_e, data) => cb(data))
