@@ -105,6 +105,14 @@ export default function Dashboard({ conn, onUnpaired }) {
             empty="Sin archivos recientes."
             render={(f) => <Row title={f.name} url={f.url} />}
           />
+          {data.designs ? (
+            <ListCard
+              title="Diseños recientes de Canva"
+              items={data.designs}
+              empty="Aún no tienes diseños."
+              render={(d) => <Row title={d.title} url={d.url} />}
+            />
+          ) : null}
         </View>
       ) : null}
     </ScrollView>

@@ -47,7 +47,8 @@ function context(data) {
     pendientes: pick(data && data.tasks).map(({ title, due, list }) => ({ title, due, list })),
     hoja: pick(data && data.sheet),
     correos: pick(data && data.emails).map(({ from, subject }) => ({ from, subject })),
-    archivos: pick(data && data.files).map(({ name }) => name)
+    archivos: pick(data && data.files).map(({ name }) => name),
+    disenosCanva: pick(data && data.designs).map(({ title, updatedAt }) => ({ title, updatedAt }))
   });
 }
 

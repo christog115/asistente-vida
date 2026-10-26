@@ -50,6 +50,10 @@
       <h2>Archivos recientes de Drive</h2>
       <ul id="files" class="list"></ul>
     </section>
+    <section class="card">
+      <h2>Diseños recientes de Canva</h2>
+      <ul id="designs" class="list"></ul>
+    </section>
   </main>
 
   <main id="asistente" class="view chat-view hidden">
@@ -92,6 +96,19 @@
         <input id="gemini-key" type="password" placeholder="Clave de API de Gemini" autocomplete="off">
         <button type="submit">Guardar</button>
       </form>
+    </section>
+
+    <section class="card">
+      <h2>Canva</h2>
+      <p class="muted">Muestra tus diseños más recientes. Canva pide que crees tu propia integración (gratis, solo lectura); los pasos están en el README.</p>
+      <p>Estado: <strong id="canva-status"></strong></p>
+      <form id="canva-form">
+        <input id="canva-id" placeholder="Client ID" autocomplete="off">
+        <input id="canva-secret" type="password" placeholder="Client Secret" autocomplete="off">
+        <button type="submit">Guardar claves</button>
+      </form>
+      <button id="canva-connect" class="hidden">Conectar con Canva</button>
+      <button id="canva-disconnect" class="ghost hidden">Desconectar</button>
     </section>
 
     <section class="card">

@@ -8,6 +8,7 @@ const reminders = require('./src/reminders');
 const ai = require('./src/ai');
 const voice = require('./src/voice');
 const phone = require('./src/phone');
+const canva = require('./src/canva');
 const mobile = require('./src/mobile');
 const store = require('./src/store');
 
@@ -79,7 +80,7 @@ function createTray() {
 
 async function refresh() {
   const safe = (p) => p.catch((err) => ({ error: err.message }));
-  const [g, m] = await Promise.all([safe(google.fetchAll()), safe(moodle.fetchPending())]);
+  const [g, m, c] = await Promise.all([safe(google.fetchAll()), safe(moodle.fetchPending()), safe(canva.recentDesigns())]);
   const school = [];
   for (const part of [g && g.school, m]) {
     if (Array.isArray(part)) school.push(...part);
@@ -89,10 +90,11 @@ async function refresh() {
     updatedAt: new Date().toISOString(),
     emails: g && g.emails, events: g && g.events, tasks: g && g.tasks, files: g && g.files,
     sheet: g && g.sheet,
+    designs: c,
     school,
     briefing: store.get('briefing') || null,
     errors: {
-      google: g && g.error, classroom: g && g.school && g.school.error, moodle: m && m.error
+      canva: c && c.error, google: g && g.error, classroom: g && g.school && g.school.error, moodle: m && m.error
     }
   };
   if (win) win.webContents.send('data', latest);
@@ -127,6 +129,7 @@ function statuses() {
   return {
     google: google.status(),
     moodle: moodle.status(),
+    canva: canva.status(),
     moodleUrl: store.get('moodle').url,
     reminderTimes: store.get('reminderTimes'),
     autoStart: app.getLoginItemSettings(loginItem()).openAtLogin,
@@ -154,6 +157,9 @@ ipcMain.handle('moodle-connect-browser', async () => {
   return refresh();
 });
 ipcMain.handle('moodle-disconnect', () => { moodle.disconnect(); return refresh(); });
+ipcMain.handle('canva-set-app', (_e, id, secret) => { canva.setApp(id, secret); return refresh(); });
+ipcMain.handle('canva-connect', async () => { await canva.connect(); return refresh(); });
+ipcMain.handle('canva-disconnect', () => { canva.disconnect(); return refresh(); });
 ipcMain.handle('set-sheet-url', (_e, url) => { store.set('sheetUrl', url); return refresh(); });
 ipcMain.handle('ai-set-key', (_e, which, key) => ai.setKey(which, key));
 ipcMain.handle('ai-set-provider', (_e, p) => ai.setProvider(p));

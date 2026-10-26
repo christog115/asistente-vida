@@ -89,12 +89,18 @@ function render(data) {
     (m) => item({ title: m.subject, meta: m.from, url: m.url }), 'Bandeja al día.');
   renderList($('files'), data.files,
     (f) => item({ title: f.name, meta: '', url: f.url }), 'Sin archivos recientes.');
+  renderList($('designs'), data.designs || (data.errors?.canva ? { error: data.errors.canva } : null),
+    (d) => item({ title: d.title, meta: d.updatedAt ? 'editado ' + fmtDate(d.updatedAt) : '', url: d.url }),
+    'Aún no tienes diseños.');
 }
 
 async function renderStatus() {
   const s = await api.getStatus();
   $('google-status').textContent = STATUS_TEXT[s.google];
   $('moodle-status').textContent = STATUS_TEXT[s.moodle];
+  $('canva-status').textContent = s.canva === 'sin-credenciales' ? 'Faltan las claves de Canva' : STATUS_TEXT[s.canva];
+  $('canva-connect').classList.toggle('hidden', s.canva !== 'desconectado');
+  $('canva-disconnect').classList.toggle('hidden', s.canva === 'sin-credenciales');
   $('moodle-url').value = s.moodleUrl;
   $('reminder-times').value = s.reminderTimes.join(', ');
   $('autostart').checked = s.autoStart;
@@ -254,6 +260,15 @@ $('moodle-form').onsubmit = (e) => {
   $('moodle-pass').value = '';
   run(() => api.moodleConnectPassword(user, pass), 'Escuela conectada.');
 };
+$('canva-form').onsubmit = (e) => {
+  e.preventDefault();
+  const id = $('canva-id').value;
+  const secret = $('canva-secret').value;
+  $('canva-secret').value = '';
+  run(() => api.canvaSetApp(id, secret), 'Claves guardadas. Ahora toca "Conectar con Canva".');
+};
+$('canva-connect').onclick = () => run(api.canvaConnect, 'Canva conectado.');
+$('canva-disconnect').onclick = () => run(api.canvaDisconnect, 'Canva desconectado.');
 $('moodle-browser').onclick = () => run(api.moodleConnectBrowser, 'Listo.');
 $('moodle-disconnect').onclick = () => run(api.moodleDisconnect, 'Escuela desconectada.');
 $('save-reminders').onclick = async () => {

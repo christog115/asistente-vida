@@ -8,6 +8,8 @@ App de escritorio (Windows y Mac) que vive en la bandeja del sistema y junta en 
 - **Asistente con IA** (Claude o Gemini): te arma un resumen cada mañana y le puedes preguntar cosas como "¿qué entrego esta semana?".
 - **Recordatorios diarios** como notificación del sistema (por defecto 7:00 y 20:00) y un aviso cuando una tarea vence en menos de 24 horas.
 - **Avisos en el celular** (Android o iPhone): los mismos recordatorios llegan a tu teléfono.
+- **Voz tipo Jarvis**: di la palabra clave (o Ctrl+Shift+J) y el asistente te contesta hablando.
+- **Diseños recientes de Canva** en el tablero.
 - **App del celular** (carpeta `mobile/`): ve el tablero y habla con el asistente desde el teléfono, en casa o fuera con Tailscale.
 
 Arranca sola al prender la PC (en segundo plano) y al cerrar la ventana sigue funcionando en la bandeja.
@@ -73,6 +75,18 @@ La app está en [`mobile/`](mobile/README.md) (Android ahora, iPhone después). 
 - El código de emparejamiento vale 10 minutos y una vez; 5 intentos fallidos lo invalidan y bloquean un minuto.
 - Todo va directo PC ↔ celular, sin servidores en medio. La PC debe estar prendida.
 
+## Canva
+
+Canva exige que crees tu propia integración (gratis, solo lectura):
+
+1. Entra a <https://www.canva.com/developers/integrations/connect-api> y crea una integración (Connect API). Puede que Canva te pida activar la verificación en dos pasos.
+2. En **Scopes** marca solo `design:meta:read`.
+3. En **Authentication** agrega esta URL de redirección: `http://127.0.0.1:47823/canva`
+4. Copia el **Client ID** y genera el **Client Secret**.
+5. En la app: **Conexiones → Canva** → pega las dos claves → **Guardar claves** → **Conectar con Canva** y acepta en el navegador.
+
+Aparecen tus 8 diseños más recientes en el tablero (y en la app del celular). Las claves se guardan cifradas.
+
 ## Conectar la escuela (Moodle)
 
 En **Conexiones** hay dos opciones:
@@ -91,4 +105,5 @@ En **Conexiones** hay dos opciones:
 - ~~**Fase 2:** asistente con Claude y Gemini; Google Sheets.~~ Listo.
 - ~~**Fase 3:** avisos en el celular.~~ Listo.
 - ~~**Fase 3b:** app del celular que se conecta a la PC.~~ Lista para probar (falta compilar el APK y probarla en un celular real).
-- **Fase 4:** Canva y más integraciones.
+- ~~**Fase 4:** Canva~~ Lista para probar (falta probarla con tu cuenta de Canva). Incluye la voz tipo Jarvis.
+- **Más adelante:** más integraciones (dime cuáles).
