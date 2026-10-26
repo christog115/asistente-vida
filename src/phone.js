@@ -21,9 +21,18 @@ function status() {
   return { enabled: c.enabled && !!topic(), hasTopic: !!topic(), server: c.server };
 }
 
+// Nombre fácil de escribir en el celular: 16 letras/números sin los que se
+// confunden (i, l, o, 0, 1), en grupos de 4. Son ~79 bits al azar.
+const ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789';
+
+function randomTopic() {
+  const chars = Array.from({ length: 16 }, () => ALPHABET[crypto.randomInt(ALPHABET.length)]);
+  return chars.join('').match(/.{4}/g).join('-');
+}
+
 // Crea un tema nuevo (el anterior deja de funcionar) y enciende los avisos.
 function createTopic() {
-  store.setSecret('phoneTopic', 'asistente-' + crypto.randomBytes(16).toString('hex'));
+  store.setSecret('phoneTopic', randomTopic());
   store.set('phone', { ...config(), enabled: true });
 }
 
@@ -42,13 +51,15 @@ function disable() {
   store.set('phone', { ...config(), enabled: false });
 }
 
-// Lo que se escanea desde la app ntfy del celular para suscribirse al tema.
-async function qr() {
+// Datos para suscribir el celular. La app ntfy pide escribir el nombre del
+// tema (no tiene escáner), así que se muestra el nombre; el QR es un extra
+// para abrir el enlace con la cámara.
+async function pairing() {
   const t = topic();
   if (!t) return null;
-  const host = new URL(config().server).host;
+  const { host } = new URL(config().server);
   const link = `ntfy://${host}/${t}`;
-  return { link, image: await QRCode.toDataURL(link, { margin: 1, width: 240 }) };
+  return { topic: t, host, link, image: await QRCode.toDataURL(link, { margin: 1, width: 240 }) };
 }
 
 // Publica con JSON (no con encabezados) para que los acentos lleguen bien.
@@ -71,4 +82,4 @@ function trySend(title, message, opts) {
   send(title, message, opts).catch((err) => console.error('Aviso al celular:', err.message));
 }
 
-module.exports = { status, createTopic, setEnabled, setServer, disable, qr, send, trySend };
+module.exports = { status, createTopic, setEnabled, setServer, disable, pairing, send, trySend };

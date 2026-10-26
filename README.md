@@ -55,13 +55,13 @@ Cada mañana (desde las 5:00, en cuanto la PC esté prendida) el asistente arma 
 Usa [ntfy](https://ntfy.sh), una app gratis (Google Play / App Store) que recibe notificaciones sin crear cuenta:
 
 1. Instala **ntfy** en tu celular.
-2. En la app de escritorio: **Conexiones → Celular → Conectar celular**. Aparece un código QR.
-3. En ntfy toca **+** y escanea el código (o abre el enlace).
-4. Toca **Enviar prueba**: debe sonar tu celular.
+2. En la app de escritorio: **Conexiones → Celular → Conectar celular**. Aparece el **nombre del tema** (algo como `k7m2-x9pq-4rtd-hw5n`).
+3. En ntfy toca **+**, escribe ese nombre en *Topic name* (deja el servidor ntfy.sh) y toca **Subscribe**. Si tu cámara abre enlaces `ntfy://`, también puedes escanear el QR que aparece bajo "¿Prefieres escanear?".
+4. De vuelta en la PC toca **Enviar prueba**: debe sonar tu celular.
 
 Recibes lo mismo que en la PC: el resumen del día y el aviso cuando una tarea vence en menos de 24 horas.
 
-- El nombre del tema es largo y aleatorio, se guarda cifrado y solo se ve como QR en tu pantalla. Quien lo escanee puede leer tus avisos; si lo compartes sin querer, dale **Desconectar** y **Conectar celular** para generar uno nuevo.
+- El nombre del tema es largo y aleatorio, se guarda cifrado y solo se ve en tu pantalla. Quien conozca el nombre puede leer tus avisos; si lo compartes sin querer, dale **Desconectar** y **Conectar celular** para generar uno nuevo.
 - Los avisos se mandan desde la PC, así que la app debe estar prendida. Si algún día quieres tu propio servidor ntfy, la dirección está en `config.json` (`phone.server`).
 
 ## Conectar la escuela (Moodle)

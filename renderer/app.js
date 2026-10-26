@@ -156,13 +156,18 @@ let hasPhoneTopic = false;
 
 function showQr(qr) {
   if (!qr) return;
+  $('phone-topic').textContent = qr.topic;
   $('phone-qr-img').src = qr.image;
   $('phone-qr').classList.remove('hidden');
 }
 // Si ya hay un tema, se vuelve a mostrar el mismo código; uno nuevo se crea tras Desconectar.
 $('phone-create').onclick = () => run(async () => {
   showQr(await (hasPhoneTopic ? api.phoneQr() : api.phoneCreate()));
-}, 'Escanea el código con la app ntfy.');
+}, 'Escribe el nombre del tema en la app ntfy.');
+$('phone-copy').onclick = async () => {
+  await navigator.clipboard.writeText($('phone-topic').textContent);
+  $('message').textContent = 'Nombre copiado.';
+};
 $('phone-test').onclick = () => run(() => api.phoneTest(), 'Prueba enviada: revisa tu celular.');
 $('phone-disable').onclick = () => run(() => api.phoneDisable(), 'Celular desconectado.');
 

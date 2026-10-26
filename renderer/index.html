@@ -116,15 +116,25 @@
       <p>Estado: <strong id="phone-status"></strong></p>
       <ol class="muted steps">
         <li>Instala <strong>ntfy</strong> desde Google Play (o App Store).</li>
-        <li>Toca <strong>Conectar celular</strong> aquí.</li>
-        <li>En ntfy toca <strong>+</strong> y escanea el código (o abre el enlace desde el celular).</li>
+        <li>Aquí toca <strong>Conectar celular</strong>: aparece el nombre del tema.</li>
+        <li>En ntfy toca <strong>+</strong>, escribe ese nombre en <strong>Topic name</strong> (déjalo en el servidor ntfy.sh) y toca <strong>Subscribe</strong>.</li>
+        <li>Aquí toca <strong>Enviar prueba</strong>: debe sonar tu celular.</li>
       </ol>
       <button id="phone-create">Conectar celular</button>
       <button id="phone-test" class="ghost">Enviar prueba</button>
       <button id="phone-disable" class="ghost">Desconectar</button>
       <div id="phone-qr" class="qr hidden">
-        <img id="phone-qr-img" alt="Código QR para ntfy" width="200" height="200">
-        <p class="muted">No compartas este código: quien lo escanee verá tus avisos.</p>
+        <p class="muted">Nombre del tema (escríbelo tal cual, con los guiones):</p>
+        <div class="topic-row">
+          <code id="phone-topic" class="topic"></code>
+          <button id="phone-copy" class="ghost">Copiar</button>
+        </div>
+        <details>
+          <summary class="muted">¿Prefieres escanear?</summary>
+          <p class="muted">Si la cámara de tu celular abre el enlace en ntfy, con esto te suscribes sin escribir nada.</p>
+          <img id="phone-qr-img" alt="Código QR para ntfy" width="200" height="200">
+        </details>
+        <p class="muted">No lo compartas: quien conozca el nombre verá tus avisos.</p>
       </div>
     </section>
 
