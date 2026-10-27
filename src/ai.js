@@ -8,7 +8,12 @@ const store = require('./store');
 const CLAUDE_MODEL = 'claude-opus-5-5';
 // Se puede cambiar en config.json ("geminiModel") cuando Google saque otro.
 // Google retira modelos seguido: si el primero ya no existe (404) se prueba el siguiente.
-const GEMINI_MODELS = ['gemini-3.8-flash', 'gemini-2.5-flash'];
+const GEMINI_MODELS = ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-2.5-flash'];
+
+// El texto del error de Google viene como JSON; se deja solo el mensaje.
+function googleMessage(err) {
+  try { return JSON.parse(err.message).error.message.slice(0, 220); } catch { return String(err.message).slice(0, 220); }
+}
 
 const SYSTEM = `Eres el asistente personal de Christopher, estudiante en México.
 Respondes en español, en tono cercano y directo, con frases cortas.
@@ -106,7 +111,9 @@ async function askGemini(system, messages) {
   if (!key) throw new Error('Falta la clave de Gemini (Conexiones → Asistente).');
   const ai = new GoogleGenAI({ apiKey: key });
   const contents = messages.map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] }));
-  const models = [store.get('geminiModel'), ...GEMINI_MODELS].filter(Boolean);
+  // Primero el que funcionó la última vez; si Google retira modelos, se prueban los demás.
+  const models = [...new Set([store.get('geminiModel'), store.get('geminiModelOk'), ...GEMINI_MODELS].filter(Boolean))];
+  let first404 = null;
   for (const [i, model] of models.entries()) {
     try {
       // Sin "pensar" largo contesta mucho más rápido; si el modelo no acepta ese ajuste, se reintenta sin él.
@@ -116,13 +123,15 @@ async function askGemini(system, messages) {
           if (err.status === 400 && /think/i.test(err.message)) return generate({ systemInstruction: system });
           throw err;
         });
+      if (store.get('geminiModelOk') !== model) store.set('geminiModelOk', model);
       return (res.text || '').trim();
     } catch (err) {
+      if (err.status === 404 && !first404) first404 = `${model}: ${googleMessage(err)}`;
       if (err.status === 404 && i < models.length - 1) continue;
       if ((err.status === 503 || err.status === 500) && i < models.length - 1) continue;
       if (err.status === 503 || err.status === 500) throw new Error('Gemini está saturado en este momento; intenta de nuevo en unos segundos.');
       if (err.timeout) throw new Error('Gemini tardó demasiado en contestar; intenta de nuevo.');
-      if (err.status === 404) throw new Error('Google retiró el modelo de Gemini que usa la app; avísale a Claude para actualizarlo.');
+      if (err.status === 404) throw new Error(`Google no encontró ningún modelo de Gemini para tu clave (${first404}). Avísale a Claude con este mensaje o cambia a Claude en Conexiones → Asistente.`);
       if (err.status === 400 && /API_KEY_INVALID/.test(err.message)) throw new Error('La clave de Gemini no es válida.');
       if (err.status === 429) throw new Error('Gemini está ocupado; intenta en un momento.');
       throw err;
