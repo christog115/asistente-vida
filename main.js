@@ -11,6 +11,7 @@ const phone = require('./src/phone');
 const canva = require('./src/canva');
 const spotify = require('./src/spotify');
 const whatsapp = require('./src/whatsapp');
+const updater = require('./src/updater');
 const mobile = require('./src/mobile');
 const store = require('./src/store');
 
@@ -137,6 +138,7 @@ function statuses() {
     canva: canva.status(),
     spotify: spotify.status(),
     whatsapp: whatsapp.status(),
+    update: updater.status(),
     moodleUrl: store.get('moodle').url,
     reminderTimes: store.get('reminderTimes'),
     autoStart: app.getLoginItemSettings(loginItem()).openAtLogin,
@@ -173,6 +175,9 @@ ipcMain.handle('spotify-disconnect', () => { spotify.disconnect(); return refres
 ipcMain.handle('whatsapp-save', (_e, cfg) => whatsapp.save(cfg));
 ipcMain.handle('whatsapp-test', () => whatsapp.sendTest());
 ipcMain.handle('whatsapp-disconnect', () => whatsapp.disconnect());
+ipcMain.handle('update-set-enabled', (_e, on) => updater.setEnabled(on));
+ipcMain.handle('update-check', () => updater.check());
+ipcMain.handle('update-install', () => { quitting = true; updater.installNow(); });
 ipcMain.handle('set-sheet-url', (_e, url) => { store.set('sheetUrl', url); return refresh(); });
 ipcMain.handle('ai-set-key', (_e, which, key) => ai.setKey(which, key));
 ipcMain.handle('ai-set-provider', (_e, p) => ai.setProvider(p));
@@ -209,6 +214,7 @@ app.whenReady().then(() => {
     store.set('autoStartInit', true);
   }
   voice.serve();
+  updater.init();
   // El micrófono solo se permite a la ventana del tablero.
   session.defaultSession.setPermissionRequestHandler((wc, permission, cb) => {
     cb(permission !== 'media' || (win && wc === win.webContents));

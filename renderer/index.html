@@ -226,6 +226,15 @@
       <label class="row"><input id="autostart" type="checkbox"> Iniciar con el sistema</label>
       <button id="save-reminders">Guardar</button>
     </section>
+
+    <section class="card">
+      <h2>Actualizaciones</h2>
+      <p class="muted">La app busca versiones nuevas sola y las instala al cerrarse.</p>
+      <label class="row"><input id="auto-update" type="checkbox"> Actualizarse automáticamente</label>
+      <p>Versión <strong id="update-version"></strong> · <span id="update-state"></span></p>
+      <button id="update-check" class="ghost">Buscar ahora</button>
+      <button id="update-install" class="hidden">Reiniciar para actualizar</button>
+    </section>
     <p id="message" class="muted"></p>
   </main>
 

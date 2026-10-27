@@ -115,6 +115,18 @@ En **Conexiones** hay dos opciones:
 1. **API oficial (recomendada).** Escribes tu usuario y contraseña en la app; se mandan directo a la escuela y solo se guarda el permiso (token) que devuelve, cifrado con el sistema operativo. Es la misma vía que usa la app móvil oficial de Moodle.
 2. **Leer la página.** Si la escuela tiene apagada la opción 1, se abre su página real, inicias sesión como siempre y la app lee "Próximos eventos" en segundo plano con esa sesión.
 
+## Actualizarse solo
+
+La app instalada busca versiones nuevas en GitHub al arrancar y cada 6 horas, las descarga sola y las instala al cerrarla (o con **Reiniciar para actualizar** en Conexiones → Actualizaciones). Se apaga con el interruptor de esa tarjeta. Cuando estés trabajando desde el código (`npm start`) no hace nada.
+
+Para publicar una versión nueva (lo hago yo, o tú):
+
+1. Sube el número de `version` en `package.json` y haz commit.
+2. Crea la etiqueta y súbela: `git tag v0.2.0 && git push origin v0.2.0`.
+3. GitHub Actions (`.github/workflows/release.yml`) arma el instalador de Windows y Mac y lo publica en **Releases**.
+
+Requisito: el repositorio debe ser **público** (Settings → General → Danger Zone → Change visibility), porque las apps instaladas descargan sin ninguna clave. El repositorio no contiene claves ni secretos (`credentials/` está ignorado). Ojo: Windows mostrará el aviso de "SmartScreen" porque el instalador no está firmado, y en Mac las actualizaciones automáticas necesitan una app firmada por Apple (cuenta de desarrollador de pago).
+
 ## Seguridad
 
 - Ninguna contraseña se guarda. Los tokens se cifran con DPAPI (Windows) o el Llavero (Mac).
@@ -127,5 +139,6 @@ En **Conexiones** hay dos opciones:
 - ~~**Fase 3:** avisos en el celular.~~ Listo.
 - ~~**Fase 3b:** app del celular que se conecta a la PC.~~ Lista para probar (falta compilar el APK y probarla en un celular real).
 - ~~**Fase 4:** Canva~~ Lista para probar (falta probarla con tu cuenta de Canva). Incluye la voz tipo Jarvis.
+- **Fase 6:** actualización automática (ver abajo).
 - **Fase 5:** Spotify y avisos por WhatsApp (oficial). Listas para probar con tus cuentas.
 - **Más adelante:** más integraciones (dime cuáles).

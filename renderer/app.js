@@ -111,6 +111,7 @@ async function renderStatus() {
   $('spotify-connect').classList.toggle('hidden', s.spotify !== 'desconectado');
   $('spotify-disconnect').classList.toggle('hidden', s.spotify === 'sin-credenciales');
   $('whatsapp-status').textContent = { conectado: 'Conectado', pausado: 'Pausado', desconectado: 'Sin conectar' }[s.whatsapp];
+  renderUpdate(s.update);
   $('moodle-url').value = s.moodleUrl;
   $('reminder-times').value = s.reminderTimes.join(', ');
   $('autostart').checked = s.autoStart;
@@ -293,6 +294,22 @@ $('whatsapp-form').onsubmit = (e) => {
 };
 $('whatsapp-test').onclick = () => run(() => api.whatsappTest(), 'Prueba enviada: revisa tu WhatsApp.');
 $('whatsapp-disconnect').onclick = () => run(() => api.whatsappDisconnect(), 'WhatsApp desconectado.');
+const UPDATE_TEXT = {
+  inactivo: 'sin revisar aún', buscando: 'buscando…', 'al-dia': 'estás al día',
+  descargando: 'descargando la nueva…', lista: 'lista para instalar', error: 'no se pudo revisar',
+  desarrollo: 'solo funciona en la app instalada'
+};
+function renderUpdate(u) {
+  $('auto-update').checked = u.enabled;
+  $('update-version').textContent = u.current;
+  $('update-state').textContent = (UPDATE_TEXT[u.state] || u.state) + (u.version && u.state !== 'al-dia' ? ` (${u.version})` : '')
+    + (u.error ? ': ' + u.error : '');
+  $('update-install').classList.toggle('hidden', u.state !== 'lista');
+  if (u.state === 'buscando' || u.state === 'descargando') setTimeout(renderStatus, 3000);
+}
+$('auto-update').onchange = (e) => run(() => api.updateSetEnabled(e.target.checked), 'Listo.');
+$('update-check').onclick = async () => { await api.updateCheck(); setTimeout(renderStatus, 1500); };
+$('update-install').onclick = () => api.updateInstall();
 $('moodle-browser').onclick = () => run(api.moodleConnectBrowser, 'Listo.');
 $('moodle-disconnect').onclick = () => run(api.moodleDisconnect, 'Escuela desconectada.');
 $('save-reminders').onclick = async () => {
