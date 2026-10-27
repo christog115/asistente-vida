@@ -7,7 +7,8 @@ const store = require('./store');
 
 const CLAUDE_MODEL = 'claude-opus-5-5';
 // Se puede cambiar en config.json ("geminiModel") cuando Google saque otro.
-const GEMINI_MODEL = 'gemini-2.5-flash';
+// Google retira modelos seguido: si el primero ya no existe (404) se prueba el siguiente.
+const GEMINI_MODELS = ['gemini-3.8-flash', 'gemini-2.5-flash'];
 
 const SYSTEM = `Eres el asistente personal de Christopher, estudiante en México.
 Respondes en español, en tono cercano y directo, con frases cortas.
@@ -84,17 +85,19 @@ async function askGemini(system, messages) {
   const key = store.getSecret('geminiKey');
   if (!key) throw new Error('Falta la clave de Gemini (Conexiones → Asistente).');
   const ai = new GoogleGenAI({ apiKey: key });
-  try {
-    const res = await ai.models.generateContent({
-      model: store.get('geminiModel') || GEMINI_MODEL,
-      contents: messages.map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })),
-      config: { systemInstruction: system }
-    });
-    return (res.text || '').trim();
-  } catch (err) {
-    if (err.status === 400 && /API_KEY_INVALID/.test(err.message)) throw new Error('La clave de Gemini no es válida.');
-    if (err.status === 429) throw new Error('Gemini está ocupado; intenta en un momento.');
-    throw err;
+  const contents = messages.map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] }));
+  const models = [store.get('geminiModel'), ...GEMINI_MODELS].filter(Boolean);
+  for (const [i, model] of models.entries()) {
+    try {
+      const res = await ai.models.generateContent({ model, contents, config: { systemInstruction: system } });
+      return (res.text || '').trim();
+    } catch (err) {
+      if (err.status === 404 && i < models.length - 1) continue;
+      if (err.status === 404) throw new Error('Google retiró el modelo de Gemini que usa la app; avísale a Claude para actualizarlo.');
+      if (err.status === 400 && /API_KEY_INVALID/.test(err.message)) throw new Error('La clave de Gemini no es válida.');
+      if (err.status === 429) throw new Error('Gemini está ocupado; intenta en un momento.');
+      throw err;
+    }
   }
 }
 
