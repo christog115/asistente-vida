@@ -117,12 +117,14 @@ En **Conexiones** hay dos opciones:
 
 ## Actualizarse solo
 
-La app instalada busca versiones nuevas en GitHub al arrancar y cada 6 horas, las descarga sola y las instala al cerrarla (o con **Reiniciar para actualizar** en Conexiones → Actualizaciones). Se apaga con el interruptor de esa tarjeta. Cuando estés trabajando desde el código (`npm start`) no hace nada.
+La app instalada busca versiones nuevas en GitHub al arrancar y cada 6 horas, las descarga sola y las instala al cerrarla (o con **Reiniciar para actualizar** en Conexiones → Actualizaciones). Se apaga con el interruptor de esa tarjeta. Si la app se reinstala desde el instalador, tus datos y claves se conservan. Una cosa a mano: copia `credentials/google-credentials.json` a la carpeta de datos de la app (`%APPDATA%\asistente-vida` en Windows) para que la app instalada encuentre tus credenciales de Google.
+
+Cuando estés trabajando desde el código (`npm start`) no hace nada.
 
 Para publicar una versión nueva (lo hago yo, o tú):
 
 1. Sube el número de `version` en `package.json` y haz commit.
-2. Crea la etiqueta y súbela: `git tag v0.2.0 && git push origin v0.2.0`.
+2. Crea la etiqueta y súbela (`git tag v0.2.1 && git push origin v0.2.1`) o crea el release desde GitHub (Releases → Draft a new release, con esa etiqueta, **Publish release**).
 3. GitHub Actions (`.github/workflows/release.yml`) arma el instalador de Windows y Mac y lo publica en **Releases**.
 
 Requisito: el repositorio debe ser **público** (Settings → General → Danger Zone → Change visibility), porque las apps instaladas descargan sin ninguna clave. El repositorio no contiene claves ni secretos (`credentials/` está ignorado). Ojo: Windows mostrará el aviso de "SmartScreen" porque el instalador no está firmado, y en Mac las actualizaciones automáticas necesitan una app firmada por Apple (cuenta de desarrollador de pago).

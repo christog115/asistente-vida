@@ -1,6 +1,6 @@
 {
   "name": "asistente-vida",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Tablero de vida personal: correo, calendario, tareas de la escuela y recordatorios diarios en una app de escritorio.",
   "main": "main.js",
   "author": "Christopher",
@@ -45,7 +45,8 @@
       {
         "provider": "github",
         "owner": "christog115",
-        "repo": "asistente-vida"
+        "repo": "asistente-vida",
+        "releaseType": "release"
       }
     ]
   }
