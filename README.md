@@ -115,9 +115,21 @@ En **Conexiones** hay dos opciones:
 1. **API oficial (recomendada).** Escribes tu usuario y contraseña en la app; se mandan directo a la escuela y solo se guarda el permiso (token) que devuelve, cifrado con el sistema operativo. Es la misma vía que usa la app móvil oficial de Moodle.
 2. **Leer la página.** Si la escuela tiene apagada la opción 1, se abre su página real, inicias sesión como siempre y la app lee "Próximos eventos" en segundo plano con esa sesión.
 
+## Órdenes (voz o chat)
+
+Di la palabra clave ("kara" o "jarvis", se cambia en Conexiones → Voz) y luego tu orden, o escríbela en el chat:
+
+- "Recuérdame en 25 minutos revisar la ropa" · "Recuérdame cada hora tomar agua" · "Qué recordatorios tengo" · "Cancela mis recordatorios". Te avisa con notificación, en voz alta si la voz está activa, y en el celular.
+- "Crea un evento el viernes a las 5 de la tarde, dentista" (Google Calendar; si Google te pide permiso, toca Desconectar y Conectar con Google una vez).
+- "Ábreme Spotify" · "Inicia Marvel Rivals" (por Steam). Solo abre una lista fija (Spotify, Marvel Rivals, Steam, Discord, WhatsApp, Canva, YouTube, Gmail, Classroom, Calendario, Drive); para agregar más escribe en `config.json` → `"apps": { "mi juego": "steam://rungameid/NUMERO" }`.
+
+La orden la interpreta Claude o Gemini, pero solo con lo que tú dices, nunca con el contenido de tus correos o tareas.
+
+La palabra clave solo se busca al principio de lo que dices ("oye kara", "kara, ¿qué hora es?"), para que no se active con una conversación cualquiera.
+
 ## Voz natural
 
-El asistente habla con las voces naturales de Microsoft Edge (por defecto Dalia, mexicana). Es gratis y sin clave, pero no es un servicio oficial para apps de terceros y necesita internet: si falla, usa la voz de tu sistema. Puedes cambiarla en **Conexiones → Voz** (las voces "sin internet" son las instaladas en tu PC).
+El asistente habla con las voces naturales de Microsoft Edge (por defecto Dalia, mexicana). Es gratis y sin clave, pero no es un servicio oficial para apps de terceros y necesita internet. De respaldo (sin internet) usa **Piper**: en Conexiones → Voz toca "Instalar voz natural sin internet" (descarga ~85 MB una vez); si tampoco está, usa la voz de tu sistema. Puedes cambiarla en **Conexiones → Voz** (las voces "sin internet" son las instaladas en tu PC).
 
 ## Actualizarse solo
 

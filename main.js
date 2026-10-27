@@ -1,6 +1,6 @@
 // Proceso principal: ventana del tablero, ícono en la bandeja, arranque con
 // el sistema, actualización periódica y recordatorios.
-const { app, BrowserWindow, Tray, Menu, ipcMain, shell, nativeImage, session, globalShortcut } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, shell, nativeImage, session, globalShortcut, Notification } = require('electron');
 const path = require('path');
 const google = require('./src/google');
 const moodle = require('./src/moodle');
@@ -13,6 +13,9 @@ const spotify = require('./src/spotify');
 const whatsapp = require('./src/whatsapp');
 const updater = require('./src/updater');
 const tts = require('./src/tts');
+const piper = require('./src/piper');
+const actions = require('./src/actions');
+const alarms = require('./src/alarms');
 const mobile = require('./src/mobile');
 const store = require('./src/store');
 
@@ -182,8 +185,23 @@ ipcMain.handle('update-install', () => { quitting = true; updater.installNow(); 
 ipcMain.handle('set-sheet-url', (_e, url) => { store.set('sheetUrl', url); return refresh(); });
 ipcMain.handle('ai-set-key', (_e, which, key) => ai.setKey(which, key));
 ipcMain.handle('ai-set-provider', (_e, p) => ai.setProvider(p));
-ipcMain.handle('ai-chat', (_e, history, opts) => ai.chat(history, latest, opts));
-ipcMain.handle('voice-status', () => ({ ...voice.status(), edgeVoices: tts.VOICES, defaultEdge: tts.DEFAULT_VOICE }));
+ipcMain.handle('ai-chat', async (_e, history, opts) => {
+  // Si la última frase es una orden (recordatorio, evento, abrir un programa) se ejecuta en vez de charlar.
+  const last = history[history.length - 1];
+  if (last && last.role === 'user') {
+    const done = await actions.tryHandle(last.content);
+    if (done) { refresh(); return done; }
+  }
+  return ai.chat(history, latest, opts);
+});
+ipcMain.handle('voice-status', () => ({
+  ...voice.status(), edgeVoices: tts.VOICES, defaultEdge: tts.DEFAULT_VOICE, piperReady: piper.status().ready
+}));
+ipcMain.handle('piper-install', async () => {
+  await piper.install((what, pct) => { if (win) win.webContents.send('piper-progress', what, pct); });
+  return true;
+});
+ipcMain.handle('piper-speak', (_e, text) => piper.synth(text));
 ipcMain.handle('tts-speak', (_e, text, voiceId) => tts.synth(text, voiceId));
 ipcMain.handle('voice-set', (_e, changes) => voice.set(changes));
 ipcMain.handle('voice-prepare', () => voice.ensureModel((pct) => {
@@ -231,6 +249,16 @@ app.whenReady().then(() => {
   createTray();
   refresh();
   setInterval(refresh, REFRESH_MS);
+  setInterval(() => {
+    for (const a of alarms.due()) {
+      const n = new Notification({ title: 'Recordatorio', body: a.text });
+      n.on('click', showWindow);
+      n.show();
+      if (win && voice.status().enabled) win.webContents.send('voice-speak', 'Recordatorio: ' + a.text);
+      phone.trySend('Recordatorio', a.text, { priority: 4, tags: ['bell'] });
+      whatsapp.trySend('Recordatorio', a.text);
+    }
+  }, 15 * 1000);
   setInterval(() => reminders.tick(latest, showWindow, (text) => {
     if (win && voice.status().enabled) win.webContents.send('voice-speak', text);
   }), 60 * 1000);

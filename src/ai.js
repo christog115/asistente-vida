@@ -147,4 +147,9 @@ function ready() {
   return s[s.provider] === 'conectado';
 }
 
-module.exports = { status, setKey, setProvider, chat, dailyBriefing, ready };
+// Una pregunta suelta sin los datos del tablero (para interpretar órdenes).
+function ask(system, text) {
+  return provider() === 'gemini' ? askGemini(system, [{ role: 'user', content: text }]) : askClaude(system, [{ role: 'user', content: text }]);
+}
+
+module.exports = { status, setKey, setProvider, chat, ask, dailyBriefing, ready };
