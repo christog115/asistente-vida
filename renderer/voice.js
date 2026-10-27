@@ -54,10 +54,30 @@ function beep(freq) {
   osc.stop(voice.ctx.currentTime + 0.2);
 }
 
-function spanishVoice() {
-  const voices = speechSynthesis.getVoices().filter((v) => v.lang.toLowerCase().startsWith('es'));
-  return voices.find((v) => v.lang === 'es-MX') || voices[0] || null;
+// Nombres de voces femeninas comunes en Windows/Mac; el sistema no dice el género.
+const FEMALE = /sabina|helena|laura|paulina|elvira|dalia|mónica|monica|marisol|lucia|lucía|paloma|female|mujer/i;
+let chosenVoice = '';
+
+function spanishVoices() {
+  return speechSynthesis.getVoices().filter((v) => v.lang.toLowerCase().startsWith('es'));
 }
+
+function spanishVoice() {
+  const voices = spanishVoices();
+  return voices.find((v) => v.name === chosenVoice)
+    || voices.find((v) => v.lang === 'es-MX' && FEMALE.test(v.name))
+    || voices.find((v) => FEMALE.test(v.name))
+    || voices.find((v) => v.lang === 'es-MX') || voices[0] || null;
+}
+
+function fillVoices() {
+  const sel = $('voice-name');
+  const voices = spanishVoices();
+  sel.replaceChildren(...voices.map((v) => new Option(`${v.name} (${v.lang})`, v.name)));
+  const cur = spanishVoice();
+  if (cur) sel.value = cur.name;
+}
+speechSynthesis.onvoiceschanged = fillVoices;
 
 function speak(text) {
   return new Promise((resolve) => {
@@ -238,12 +258,19 @@ $('voice-form').onsubmit = async (e) => {
   if (voice.state !== 'off') { stopVoice(); startVoice(); }
   $('voice-status').textContent = `Palabra clave: "${cfg.wakeWord}".`;
 };
+$('voice-name').onchange = async (e) => {
+  chosenVoice = e.target.value;
+  await api.voiceSet({ voiceName: chosenVoice });
+  speak('Hola Christopher, así sueno.');
+};
 $('voice-test').onclick = () => speak('Hola Christopher, aquí estoy.');
 
 (async () => {
   const cfg = await api.voiceStatus();
   $('voice-enabled').checked = cfg.enabled;
   $('voice-wake').value = cfg.wakeWord;
+  chosenVoice = cfg.voiceName || '';
+  fillVoices();
   if (cfg.enabled) startVoice();
   else setVoiceState('off');
 })();

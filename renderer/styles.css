@@ -64,6 +64,7 @@ input {
   border: 1px solid var(--border); background: var(--bg); color: var(--text);
 }
 input[type=checkbox], input[type=radio] { width: auto; }
+select { font: inherit; padding: 7px 10px; border-radius: 8px; width: 100%; border: 1px solid var(--border); background: var(--bg); color: var(--text); }
 form { display: grid; gap: 8px; }
 #message { grid-column: 1 / -1; }
 

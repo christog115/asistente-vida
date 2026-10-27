@@ -13,7 +13,7 @@ const store = require('./store');
 // por uno más grande de https://alphacephei.com/vosk/models si quieres más precisión.
 const MODEL_URL = 'https://alphacephei.com/vosk/models/vosk-model-small-es-0.42.zip';
 
-const DEFAULTS = { enabled: false, wakeWord: 'jarvis' };
+const DEFAULTS = { enabled: false, wakeWord: 'jarvis', voiceName: '' };
 
 const dir = () => path.join(app.getPath('userData'), 'voz');
 const modelUrl = () => store.get('voiceModelUrl') || MODEL_URL;
@@ -28,6 +28,7 @@ function settings() {
 function set(changes) {
   const next = { ...settings(), ...changes };
   next.wakeWord = String(next.wakeWord || DEFAULTS.wakeWord).trim().toLowerCase();
+  next.voiceName = String(next.voiceName || '');
   store.set('voice', next);
   return next;
 }
