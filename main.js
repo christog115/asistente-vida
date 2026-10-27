@@ -12,6 +12,7 @@ const canva = require('./src/canva');
 const spotify = require('./src/spotify');
 const whatsapp = require('./src/whatsapp');
 const updater = require('./src/updater');
+const tts = require('./src/tts');
 const mobile = require('./src/mobile');
 const store = require('./src/store');
 
@@ -182,7 +183,8 @@ ipcMain.handle('set-sheet-url', (_e, url) => { store.set('sheetUrl', url); retur
 ipcMain.handle('ai-set-key', (_e, which, key) => ai.setKey(which, key));
 ipcMain.handle('ai-set-provider', (_e, p) => ai.setProvider(p));
 ipcMain.handle('ai-chat', (_e, history, opts) => ai.chat(history, latest, opts));
-ipcMain.handle('voice-status', () => voice.status());
+ipcMain.handle('voice-status', () => ({ ...voice.status(), edgeVoices: tts.VOICES, defaultEdge: tts.DEFAULT_VOICE }));
+ipcMain.handle('tts-speak', (_e, text, voiceId) => tts.synth(text, voiceId));
 ipcMain.handle('voice-set', (_e, changes) => voice.set(changes));
 ipcMain.handle('voice-prepare', () => voice.ensureModel((pct) => {
   if (win) win.webContents.send('voice-progress', pct);

@@ -64,11 +64,15 @@ function beep(freq) {
 // Nombres de voces femeninas comunes en Windows/Mac; el sistema no dice el género.
 const FEMALE = /sabina|helena|laura|paulina|elvira|dalia|mónica|monica|marisol|lucia|lucía|paloma|female|mujer/i;
 let chosenVoice = '';
+let edgeVoices = [];
+let defaultEdge = '';
+let currentAudio = null;
 
 function spanishVoices() {
   return speechSynthesis.getVoices().filter((v) => v.lang.toLowerCase().startsWith('es'));
 }
 
+// Voz del sistema (respaldo y opción manual).
 function spanishVoice() {
   const voices = spanishVoices();
   return voices.find((v) => v.name === chosenVoice)
@@ -77,16 +81,30 @@ function spanishVoice() {
     || voices.find((v) => v.lang === 'es-MX') || voices[0] || null;
 }
 
+// Voz de Edge elegida, o la predeterminada si no se ha elegido ninguna; null si se eligió una del sistema.
+function edgeChoice() {
+  if (chosenVoice.startsWith('edge:')) return chosenVoice.slice(5);
+  return chosenVoice === '' && defaultEdge ? defaultEdge : null;
+}
+
 function fillVoices() {
   const sel = $('voice-name');
-  const voices = spanishVoices();
-  sel.replaceChildren(...voices.map((v) => new Option(`${v.name} (${v.lang})`, v.name)));
+  sel.replaceChildren(
+    ...edgeVoices.map((v) => new Option(v.label, 'edge:' + v.id)),
+    ...spanishVoices().map((v) => new Option(`${v.name} (sin internet)`, v.name))
+  );
+  const edge = edgeChoice();
   const cur = spanishVoice();
-  if (cur) sel.value = cur.name;
+  sel.value = edge ? 'edge:' + edge : (cur ? cur.name : '');
 }
 speechSynthesis.onvoiceschanged = fillVoices;
 
-function speak(text) {
+function stopSpeaking() {
+  speechSynthesis.cancel();
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+}
+
+function speakSystem(text) {
   return new Promise((resolve) => {
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
@@ -97,6 +115,39 @@ function speak(text) {
     u.onerror = resolve;
     speechSynthesis.speak(u);
   });
+}
+
+async function speakEdge(text, voiceId) {
+  const bytes = await api.ttsSpeak(text, voiceId);
+  const url = URL.createObjectURL(new Blob([bytes], { type: 'audio/mpeg' }));
+  const audio = new Audio(url);
+  currentAudio = audio;
+  try {
+    await new Promise((resolve, reject) => {
+      audio.onended = resolve;
+      audio.onpause = resolve;
+      audio.onerror = () => reject(new Error('No se pudo reproducir la voz.'));
+      audio.play().catch(reject);
+    });
+  } finally {
+    URL.revokeObjectURL(url);
+    if (currentAudio === audio) currentAudio = null;
+  }
+}
+
+async function speak(text) {
+  stopSpeaking();
+  const edge = edgeChoice();
+  if (edge) {
+    try {
+      await speakEdge(text, edge);
+      return;
+    } catch (err) {
+      // Sin internet o servicio caído: se usa la voz del sistema. Si se cortó a propósito, no se repite.
+      if (err.name === 'AbortError') return;
+    }
+  }
+  await speakSystem(text);
 }
 
 async function say(text) {
@@ -113,7 +164,7 @@ function backToWaiting() {
 // Se dijo la palabra clave (o se usó el atajo): ahora se escucha la pregunta.
 function activate() {
   if (voice.state === 'off' || voice.state === 'cargando') return;
-  speechSynthesis.cancel();
+  stopSpeaking();
   voice.wake.retrieveFinalResult(); // descarta el "jarvis" que ya oyó
   voice.heardSomething = false;
   setVoiceState('escuchando');
@@ -230,7 +281,7 @@ async function startVoice() {
 
 function stopVoice() {
   clearTimeout(voice.timer);
-  speechSynthesis.cancel();
+  stopSpeaking();
   if (voice.node) voice.node.disconnect();
   if (voice.stream) voice.stream.getTracks().forEach((t) => t.stop());
   if (voice.ctx) voice.ctx.close();
@@ -279,6 +330,8 @@ $('voice-test').onclick = () => speak('Hola Christopher, aquí estoy.');
   $('voice-enabled').checked = cfg.enabled;
   $('voice-wake').value = cfg.wakeWord;
   chosenVoice = cfg.voiceName || '';
+  edgeVoices = cfg.edgeVoices || [];
+  defaultEdge = cfg.defaultEdge || '';
   fillVoices();
   if (cfg.enabled) startVoice();
   else setVoiceState('off');

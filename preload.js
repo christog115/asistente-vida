@@ -28,6 +28,7 @@ contextBridge.exposeInMainWorld('asistente', {
   aiSetProvider: (p) => ipcRenderer.invoke('ai-set-provider', p),
   aiChat: (history, opts) => ipcRenderer.invoke('ai-chat', history, opts),
   voiceStatus: () => ipcRenderer.invoke('voice-status'),
+  ttsSpeak: (text, voiceId) => ipcRenderer.invoke('tts-speak', text, voiceId),
   voiceSet: (changes) => ipcRenderer.invoke('voice-set', changes),
   voicePrepare: () => ipcRenderer.invoke('voice-prepare'),
   voiceState: (text) => ipcRenderer.invoke('voice-state', text),
