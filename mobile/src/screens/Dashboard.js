@@ -105,6 +105,14 @@ export default function Dashboard({ conn, onUnpaired }) {
             empty="Sin archivos recientes."
             render={(f) => <Row title={f.name} url={f.url} />}
           />
+          {data.spotify && !data.spotify.error ? (
+            <ListCard
+              title={data.spotify.nowPlaying ? `Suena: ${data.spotify.nowPlaying.title}` : 'Spotify'}
+              items={data.spotify.recent}
+              empty="Sin canciones recientes."
+              render={(t) => <Row title={t.title} meta={t.artist} url={t.url} />}
+            />
+          ) : null}
           {data.designs ? (
             <ListCard
               title="Diseños recientes de Canva"

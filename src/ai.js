@@ -48,6 +48,7 @@ function context(data) {
     hoja: pick(data && data.sheet),
     correos: pick(data && data.emails).map(({ from, subject }) => ({ from, subject })),
     archivos: pick(data && data.files).map(({ name }) => name),
+    spotify: data && data.spotify && !data.spotify.error ? { sonandoAhora: data.spotify.nowPlaying, reciente: pick(data.spotify.recent).map(({ title, artist }) => ({ title, artist })) } : undefined,
     disenosCanva: pick(data && data.designs).map(({ title, updatedAt }) => ({ title, updatedAt }))
   });
 }

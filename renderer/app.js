@@ -92,6 +92,12 @@ function render(data) {
   renderList($('designs'), data.designs || (data.errors?.canva ? { error: data.errors.canva } : null),
     (d) => item({ title: d.title, meta: d.updatedAt ? 'editado ' + fmtDate(d.updatedAt) : '', url: d.url }),
     'Aún no tienes diseños.');
+  const sp = data.spotify;
+  $('spotify-now').textContent = sp && !sp.error
+    ? (sp.nowPlaying ? `Suena ahora: ${sp.nowPlaying.title} · ${sp.nowPlaying.artist}` : 'Nada suena ahora.')
+    : '';
+  renderList($('spotify-recent'), sp && !sp.error ? sp.recent : (sp ? { error: sp.error } : (data.errors?.spotify ? { error: data.errors.spotify } : null)),
+    (t) => item({ title: t.title, meta: t.artist + ' · ' + fmtDate(t.playedAt), url: t.url }), 'Sin canciones recientes.');
 }
 
 async function renderStatus() {
@@ -101,6 +107,10 @@ async function renderStatus() {
   $('canva-status').textContent = s.canva === 'sin-credenciales' ? 'Faltan las claves de Canva' : STATUS_TEXT[s.canva];
   $('canva-connect').classList.toggle('hidden', s.canva !== 'desconectado');
   $('canva-disconnect').classList.toggle('hidden', s.canva === 'sin-credenciales');
+  $('spotify-status').textContent = s.spotify === 'sin-credenciales' ? 'Falta el Client ID de Spotify' : STATUS_TEXT[s.spotify];
+  $('spotify-connect').classList.toggle('hidden', s.spotify !== 'desconectado');
+  $('spotify-disconnect').classList.toggle('hidden', s.spotify === 'sin-credenciales');
+  $('whatsapp-status').textContent = { conectado: 'Conectado', pausado: 'Pausado', desconectado: 'Sin conectar' }[s.whatsapp];
   $('moodle-url').value = s.moodleUrl;
   $('reminder-times').value = s.reminderTimes.join(', ');
   $('autostart').checked = s.autoStart;
@@ -269,6 +279,20 @@ $('canva-form').onsubmit = (e) => {
 };
 $('canva-connect').onclick = () => run(api.canvaConnect, 'Canva conectado.');
 $('canva-disconnect').onclick = () => run(api.canvaDisconnect, 'Canva desconectado.');
+$('spotify-form').onsubmit = (e) => {
+  e.preventDefault();
+  run(() => api.spotifySetApp($('spotify-id').value), 'Client ID guardado. Ahora toca "Conectar con Spotify".');
+};
+$('spotify-connect').onclick = () => run(api.spotifyConnect, 'Spotify conectado.');
+$('spotify-disconnect').onclick = () => run(api.spotifyDisconnect, 'Spotify desconectado.');
+$('whatsapp-form').onsubmit = (e) => {
+  e.preventDefault();
+  const cfg = { token: $('wa-token').value, phoneId: $('wa-phone-id').value, to: $('wa-to').value };
+  $('wa-token').value = '';
+  run(async () => { await api.whatsappSave(cfg); }, 'WhatsApp guardado. Toca "Enviar prueba".');
+};
+$('whatsapp-test').onclick = () => run(() => api.whatsappTest(), 'Prueba enviada: revisa tu WhatsApp.');
+$('whatsapp-disconnect').onclick = () => run(() => api.whatsappDisconnect(), 'WhatsApp desconectado.');
 $('moodle-browser').onclick = () => run(api.moodleConnectBrowser, 'Listo.');
 $('moodle-disconnect').onclick = () => run(api.moodleDisconnect, 'Escuela desconectada.');
 $('save-reminders').onclick = async () => {
