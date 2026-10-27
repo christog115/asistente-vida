@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; img-src 'self' data:; worker-src blob:; connect-src 'self' voz: data:">
   <title>Asistente de Vida</title>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -12,14 +12,20 @@
       <h1 id="greeting">Hola</h1>
       <p id="summary" class="muted">Cargando…</p>
     </div>
+    <span id="voice-pill" class="voice-pill hidden"></span>
     <nav>
       <button data-view="tablero" class="tab active">Tablero</button>
+      <button data-view="asistente" class="tab">Asistente</button>
       <button data-view="ajustes" class="tab">Conexiones</button>
       <button id="refresh" title="Actualizar">↻</button>
     </nav>
   </header>
 
   <main id="tablero" class="view">
+    <section class="card wide briefing">
+      <h2>Resumen del asistente</h2>
+      <p id="briefing" class="muted"></p>
+    </section>
     <section class="card wide">
       <h2>Tareas de la escuela</h2>
       <ul id="school" class="list"></ul>
@@ -33,12 +39,38 @@
       <ul id="tasks" class="list"></ul>
     </section>
     <section class="card">
+      <h2>Hoja de pendientes</h2>
+      <ul id="sheet" class="list"></ul>
+    </section>
+    <section class="card">
       <h2>Correos sin leer</h2>
       <ul id="emails" class="list"></ul>
     </section>
     <section class="card">
       <h2>Archivos recientes de Drive</h2>
       <ul id="files" class="list"></ul>
+    </section>
+    <section class="card">
+      <h2>Diseños recientes de Canva</h2>
+      <ul id="designs" class="list"></ul>
+    </section>
+    <section class="card">
+      <h2>Spotify</h2>
+      <p id="spotify-now" class="muted"></p>
+      <ul id="spotify-recent" class="list"></ul>
+    </section>
+  </main>
+
+  <main id="asistente" class="view chat-view hidden">
+    <section class="card chat">
+      <div id="chat-log" class="chat-log">
+        <p class="muted">Pregúntame lo que quieras sobre tus tareas, tu calendario o tus correos. Por ejemplo: "¿Qué entrego esta semana?"</p>
+      </div>
+      <form id="chat-form" class="chat-form">
+        <input id="chat-input" placeholder="Escribe tu pregunta…" autocomplete="off">
+        <button type="submit">Enviar</button>
+      </form>
+      <button id="new-briefing" class="ghost">Generar resumen de hoy</button>
     </section>
   </main>
 
@@ -49,6 +81,65 @@
       <p>Estado: <strong id="google-status"></strong></p>
       <button id="google-connect">Conectar con Google</button>
       <button id="google-disconnect" class="ghost">Desconectar</button>
+      <h3>Hoja de pendientes (Google Sheets)</h3>
+      <p class="muted">Pega el link de una hoja con columnas Tarea, Fecha y Hecho.</p>
+      <input id="sheet-url" type="url" placeholder="https://docs.google.com/spreadsheets/d/…">
+    </section>
+
+    <section class="card">
+      <h2>Asistente</h2>
+      <p class="muted">Elige qué inteligencia usa el asistente. Las claves se guardan cifradas en tu PC.</p>
+      <label class="row"><input type="radio" name="provider" value="claude"> Claude</label>
+      <label class="row"><input type="radio" name="provider" value="gemini"> Gemini</label>
+      <h3>Claude <small id="claude-status" class="muted"></small></h3>
+      <form id="claude-form" class="inline-form">
+        <input id="claude-key" type="password" placeholder="Clave de API de Claude (sk-ant-…)" autocomplete="off">
+        <button type="submit">Guardar</button>
+      </form>
+      <h3>Gemini <small id="gemini-status" class="muted"></small></h3>
+      <form id="gemini-form" class="inline-form">
+        <input id="gemini-key" type="password" placeholder="Clave de API de Gemini" autocomplete="off">
+        <button type="submit">Guardar</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Canva</h2>
+      <p class="muted">Muestra tus diseños más recientes. Canva pide que crees tu propia integración (gratis, solo lectura); los pasos están en el README.</p>
+      <p>Estado: <strong id="canva-status"></strong></p>
+      <form id="canva-form">
+        <input id="canva-id" placeholder="Client ID" autocomplete="off">
+        <input id="canva-secret" type="password" placeholder="Client Secret" autocomplete="off">
+        <button type="submit">Guardar claves</button>
+      </form>
+      <button id="canva-connect" class="hidden">Conectar con Canva</button>
+      <button id="canva-disconnect" class="ghost hidden">Desconectar</button>
+    </section>
+
+    <section class="card">
+      <h2>Spotify</h2>
+      <p class="muted">Muestra lo que suena y lo último que escuchaste (solo lectura). Necesitas crear una app gratis en Spotify; los pasos están en el README.</p>
+      <p>Estado: <strong id="spotify-status"></strong></p>
+      <form id="spotify-form">
+        <input id="spotify-id" placeholder="Client ID" autocomplete="off">
+        <button type="submit">Guardar Client ID</button>
+      </form>
+      <button id="spotify-connect" class="hidden">Conectar con Spotify</button>
+      <button id="spotify-disconnect" class="ghost hidden">Desconectar</button>
+    </section>
+
+    <section class="card">
+      <h2>WhatsApp</h2>
+      <p class="muted">Recibe el resumen del día y los avisos de tareas por WhatsApp (solo avisos a tu número, no lee tus chats). Usa la API oficial de Meta; los pasos están en el README.</p>
+      <p>Estado: <strong id="whatsapp-status"></strong></p>
+      <form id="whatsapp-form">
+        <input id="wa-token" type="password" placeholder="Token de acceso" autocomplete="off">
+        <input id="wa-phone-id" placeholder="ID del número de teléfono (de Meta)" autocomplete="off">
+        <input id="wa-to" placeholder="Tu número con lada, ej. 523312345678" autocomplete="off">
+        <button type="submit">Guardar</button>
+      </form>
+      <button id="whatsapp-test" class="ghost">Enviar prueba</button>
+      <button id="whatsapp-disconnect" class="ghost">Desconectar</button>
     </section>
 
     <section class="card">
@@ -69,6 +160,65 @@
     </section>
 
     <section class="card">
+      <h2>Celular</h2>
+      <p class="muted">Recibe en tu teléfono el resumen del día y los avisos de tareas que vencen pronto. Usa la app gratis <strong>ntfy</strong> (Android y iPhone), sin cuenta.</p>
+      <p>Estado: <strong id="phone-status"></strong></p>
+      <ol class="muted steps">
+        <li>Instala <strong>ntfy</strong> desde Google Play (o App Store).</li>
+        <li>Aquí toca <strong>Conectar celular</strong>: aparece el nombre del tema.</li>
+        <li>En ntfy toca <strong>+</strong>, escribe ese nombre en <strong>Topic name</strong> (déjalo en el servidor ntfy.sh) y toca <strong>Subscribe</strong>.</li>
+        <li>Aquí toca <strong>Enviar prueba</strong>: debe sonar tu celular.</li>
+      </ol>
+      <button id="phone-create">Conectar celular</button>
+      <button id="phone-test" class="ghost">Enviar prueba</button>
+      <button id="phone-disable" class="ghost">Desconectar</button>
+      <div id="phone-qr" class="qr hidden">
+        <p class="muted">Nombre del tema (escríbelo tal cual, con los guiones):</p>
+        <div class="topic-row">
+          <code id="phone-topic" class="topic"></code>
+          <button id="phone-copy" class="ghost">Copiar</button>
+        </div>
+        <details>
+          <summary class="muted">¿Prefieres escanear?</summary>
+          <p class="muted">Si la cámara de tu celular abre el enlace en ntfy, con esto te suscribes sin escribir nada.</p>
+          <img id="phone-qr-img" alt="Código QR para ntfy" width="200" height="200">
+        </details>
+        <p class="muted">No lo compartas: quien conozca el nombre verá tus avisos.</p>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>App del celular</h2>
+      <p class="muted">Ve tu tablero y habla con el asistente desde la app del celular. Se conecta directo con tu PC (por tu Wi-Fi o con Tailscale), sin servidores en medio. La PC debe estar prendida.</p>
+      <p>Estado: <strong id="mobile-status"></strong></p>
+      <p id="mobile-error" class="error"></p>
+      <button id="mobile-toggle">Activar</button>
+      <button id="mobile-pair" class="ghost hidden">Emparejar celular</button>
+      <div id="mobile-pairing" class="qr hidden">
+        <p class="muted">En la app del celular escanea el código o escribe estos datos:</p>
+        <div class="topic-row"><code id="mobile-code" class="topic"></code></div>
+        <p class="muted" id="mobile-urls"></p>
+        <img id="mobile-qr-img" alt="Código QR para emparejar" width="200" height="200">
+        <p class="muted">Vale 10 minutos y una sola vez.</p>
+      </div>
+      <div id="mobile-addresses" class="muted hidden"></div>
+      <h3 class="mobile-devices-title hidden">Celulares emparejados</h3>
+      <ul id="mobile-devices" class="list"></ul>
+    </section>
+
+    <section class="card">
+      <h2>Voz (Jarvis)</h2>
+      <p class="muted">Escucha siempre una palabra clave y luego tu pregunta. El audio se procesa en tu PC; solo el texto de tu pregunta va a Claude o Gemini. También puedes hablarle con <strong>Ctrl+Shift+J</strong>.</p>
+      <label class="row"><input id="voice-enabled" type="checkbox"> Escuchar siempre</label>
+      <form id="voice-form" class="inline-form">
+        <input id="voice-wake" placeholder="jarvis" autocomplete="off">
+        <button type="submit">Cambiar palabra clave</button>
+      </form>
+      <p>Estado: <strong id="voice-status"></strong></p>
+      <button id="voice-test" class="ghost">Probar la voz</button>
+    </section>
+
+    <section class="card">
       <h2>Recordatorios</h2>
       <label>Horas del resumen diario (separadas por coma)
         <input id="reminder-times" placeholder="07:00, 20:00">
@@ -76,9 +226,20 @@
       <label class="row"><input id="autostart" type="checkbox"> Iniciar con el sistema</label>
       <button id="save-reminders">Guardar</button>
     </section>
+
+    <section class="card">
+      <h2>Actualizaciones</h2>
+      <p class="muted">La app busca versiones nuevas sola y las instala al cerrarse.</p>
+      <label class="row"><input id="auto-update" type="checkbox"> Actualizarse automáticamente</label>
+      <p>Versión <strong id="update-version"></strong> · <span id="update-state"></span></p>
+      <button id="update-check" class="ghost">Buscar ahora</button>
+      <button id="update-install" class="hidden">Reiniciar para actualizar</button>
+    </section>
     <p id="message" class="muted"></p>
   </main>
 
   <script src="app.js"></script>
+  <script src="../node_modules/vosk-browser/dist/vosk.js"></script>
+  <script src="voice.js"></script>
 </body>
 </html>

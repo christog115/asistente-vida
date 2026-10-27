@@ -63,6 +63,46 @@ input {
   font: inherit; padding: 7px 10px; border-radius: 8px; width: 100%;
   border: 1px solid var(--border); background: var(--bg); color: var(--text);
 }
-input[type=checkbox] { width: auto; }
+input[type=checkbox], input[type=radio] { width: auto; }
 form { display: grid; gap: 8px; }
 #message { grid-column: 1 / -1; }
+
+.briefing p { white-space: pre-wrap; margin: 0; }
+.chat-view { grid-template-columns: 1fr; }
+.chat { display: flex; flex-direction: column; gap: 12px; min-height: 60vh; }
+.chat-log { flex: 1; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; max-height: 60vh; }
+.msg { padding: 10px 14px; border-radius: 12px; max-width: 80%; white-space: pre-wrap; }
+.msg.user { align-self: flex-end; background: var(--accent); color: #fff; }
+.msg.assistant { align-self: flex-start; background: var(--bg); border: 1px solid var(--border); }
+.chat-form, .inline-form { display: flex; gap: 8px; }
+.chat-form input, .inline-form input { flex: 1; }
+#new-briefing { align-self: flex-start; }
+.voice-pill {
+  margin-left: auto;
+  margin-right: 12px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+  max-width: 40ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.voice-pill.escuchando, .voice-pill.hablando { border-color: var(--accent); color: var(--accent); }
+
+.steps { padding-left: 20px; margin: 8px 0 12px; }
+.qr { margin-top: 12px; }
+.qr img { background: #fff; padding: 8px; border-radius: 8px; border: 1px solid var(--border); }
+
+.topic-row { display: flex; gap: 8px; align-items: center; margin: 6px 0 10px; }
+.topic { flex: 1; font: 600 18px/1.3 ui-monospace, "Cascadia Mono", Consolas, monospace; letter-spacing: .5px;
+  padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); user-select: all; }
+.qr details { margin: 6px 0 10px; }
+.qr summary { cursor: pointer; }
+
+.error { color: var(--overdue); margin: 0; }
+.error:empty { display: none; }
+.devices-row { flex-direction: row !important; justify-content: space-between; align-items: center; gap: 8px; }
+.devices-row button { padding: 4px 10px; }

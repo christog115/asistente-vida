@@ -15,7 +15,8 @@ const SCOPES = [
   'https://www.googleapis.com/auth/tasks.readonly',
   'https://www.googleapis.com/auth/drive.metadata.readonly',
   'https://www.googleapis.com/auth/classroom.courses.readonly',
-  'https://www.googleapis.com/auth/classroom.coursework.me.readonly'
+  'https://www.googleapis.com/auth/classroom.coursework.me.readonly',
+  'https://www.googleapis.com/auth/spreadsheets.readonly'
 ];
 
 // El archivo de credenciales se descarga de Google Cloud (ver README).
@@ -168,16 +169,53 @@ function classroomDue(w) {
   return new Date(Date.UTC(year, month - 1, day, hours, minutes)).toISOString();
 }
 
+// Hoja de pendientes en Google Sheets (ej. pendientes del trabajo).
+// Columnas: Tarea | Fecha | Hecho. Si hay encabezados con esos nombres se
+// usan; si no, se toman las tres primeras columnas en ese orden.
+function sheetId(url) {
+  const m = /\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/.exec(url || '');
+  return m ? m[1] : (url || '').trim() || null;
+}
+
+const DONE = /^(s[ií]|x|✓|✔|hecho|listo|terminado|true|verdadero)$/i;
+
+async function sheetPending(auth) {
+  const id = sheetId(store.get('sheetUrl'));
+  if (!id) return null;
+  const sheets = google.sheets({ version: 'v4', auth });
+  let res;
+  try {
+    res = await sheets.spreadsheets.values.get({ spreadsheetId: id, range: 'A1:Z500' });
+  } catch (err) {
+    if (err.code === 403) throw new Error('Vuelve a conectar Google para darle permiso a Sheets.');
+    throw err;
+  }
+  const rows = res.data.values || [];
+  if (!rows.length) return [];
+  const head = rows[0].map((h) => String(h).toLowerCase());
+  const col = (re, fallback) => {
+    const i = head.findIndex((h) => re.test(h));
+    return i >= 0 ? i : fallback;
+  };
+  const hasHeader = head.some((h) => /tarea|pendiente|fecha|hecho|estado/.test(h));
+  const ti = col(/tarea|pendiente|actividad/, 0);
+  const di = col(/fecha|vence|entrega/, 1);
+  const hi = col(/hecho|estado|listo/, 2);
+  return rows.slice(hasHeader ? 1 : 0)
+    .filter((r) => r[ti] && !DONE.test(String(r[hi] || '').trim()))
+    .map((r) => ({ title: r[ti], due: r[di] || null, url: `https://docs.google.com/spreadsheets/d/${id}` }));
+}
+
 // Junta todo lo de Google; si una parte falla, las demás siguen.
 async function fetchAll() {
   const auth = authedClient();
   if (!auth) return null;
   const safe = (p) => p.catch((err) => ({ error: err.message }));
-  const [emails, events, todo, files, school] = await Promise.all([
+  const [emails, events, todo, files, school, sheet] = await Promise.all([
     safe(unreadEmails(auth)), safe(todayEvents(auth)), safe(tasks(auth)),
-    safe(recentFiles(auth)), safe(classroomPending(auth))
+    safe(recentFiles(auth)), safe(classroomPending(auth)), safe(sheetPending(auth))
   ]);
-  return { emails, events, tasks: todo, files, school };
+  return { emails, events, tasks: todo, files, school, sheet };
 }
 
 module.exports = { status, connect, disconnect, fetchAll };

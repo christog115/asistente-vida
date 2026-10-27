@@ -9,10 +9,18 @@
   "scripts": {
     "start": "electron .",
     "build:win": "electron-builder --win",
-    "build:mac": "electron-builder --mac"
+    "build:mac": "electron-builder --mac",
+    "release:win": "electron-builder --win --publish always"
   },
   "dependencies": {
-    "googleapis": "^185.0.0"
+    "@anthropic-ai/sdk": "^0.133.0",
+    "@google/genai": "^2.29.1",
+    "adm-zip": "^0.5.18",
+    "electron-updater": "^6.8.11",
+    "googleapis": "^185.0.0",
+    "qrcode": "^1.5.4",
+    "tar": "^7.5.22",
+    "vosk-browser": "^0.0.8"
   },
   "devDependencies": {
     "electron": "^44.7.2",
@@ -21,8 +29,24 @@
   "build": {
     "appId": "mx.christopher.asistente-vida",
     "productName": "Asistente de Vida",
-    "files": ["main.js", "preload.js", "src/**", "renderer/**"],
-    "win": { "target": "nsis" },
-    "mac": { "target": "dmg" }
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**",
+      "renderer/**"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "christog115",
+        "repo": "asistente-vida"
+      }
+    ]
   }
 }
