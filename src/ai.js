@@ -109,8 +109,13 @@ async function askGemini(system, messages) {
   const models = [store.get('geminiModel'), ...GEMINI_MODELS].filter(Boolean);
   for (const [i, model] of models.entries()) {
     try {
-      const res = await withRetry(() => withTimeout(
-        ai.models.generateContent({ model, contents, config: { systemInstruction: system } }), 30000));
+      // Sin "pensar" largo contesta mucho más rápido; si el modelo no acepta ese ajuste, se reintenta sin él.
+      const generate = (config) => withRetry(() => withTimeout(ai.models.generateContent({ model, contents, config }), 30000));
+      const res = await generate({ systemInstruction: system, thinkingConfig: { thinkingBudget: 0 } })
+        .catch((err) => {
+          if (err.status === 400 && /think/i.test(err.message)) return generate({ systemInstruction: system });
+          throw err;
+        });
       return (res.text || '').trim();
     } catch (err) {
       if (err.status === 404 && i < models.length - 1) continue;

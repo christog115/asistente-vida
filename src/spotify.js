@@ -43,16 +43,23 @@ async function tokenRequest(params, previous) {
   };
 }
 
+// Un intento anterior que quedó esperando (cerraste la pestaña sin aceptar) mantiene el puerto
+// ocupado hasta 5 minutos: al volver a tocar "Conectar" se cancela y se empieza de nuevo.
+let pending = null;
+
 function connect() {
   const app = store.getSecret('spotifyApp');
   if (!app) return Promise.reject(new Error('Primero guarda el Client ID de Spotify.'));
   const verifier = b64url(crypto.randomBytes(48));
   const challenge = b64url(crypto.createHash('sha256').update(verifier).digest());
   const state = b64url(crypto.randomBytes(16));
+  if (pending) pending();
   return new Promise((resolve, reject) => {
     const server = http.createServer();
     const timer = setTimeout(() => { server.close(); reject(new Error('Se acabó el tiempo para aceptar en Spotify.')); }, 5 * 60 * 1000);
-    const done = (fn, v) => { clearTimeout(timer); server.close(); fn(v); };
+    const done = (fn, v) => { clearTimeout(timer); server.close(); if (pending === cancel) pending = null; fn(v); };
+    const cancel = () => done(reject, new Error('Se canceló el intento anterior.'));
+    pending = cancel;
     server.on('error', (err) => done(reject, new Error(
       err.code === 'EADDRINUSE' ? `El puerto ${PORT} está ocupado; cierra otra conexión a Spotify en curso.` : err.message)));
     server.on('request', async (req, res) => {
