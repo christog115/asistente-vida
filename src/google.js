@@ -11,7 +11,7 @@ const store = require('./store');
 
 const SCOPES = [
   'https://www.googleapis.com/auth/gmail.readonly',
-  'https://www.googleapis.com/auth/calendar.readonly',
+  'https://www.googleapis.com/auth/calendar.events',
   'https://www.googleapis.com/auth/tasks.readonly',
   'https://www.googleapis.com/auth/drive.metadata.readonly',
   'https://www.googleapis.com/auth/classroom.courses.readonly',
@@ -218,4 +218,23 @@ async function fetchAll() {
   return { emails, events, tasks: todo, files, school, sheet };
 }
 
-module.exports = { status, connect, disconnect, fetchAll };
+// Crea un evento en el calendario principal. start/end son fechas JS.
+async function createEvent({ title, start, end }) {
+  const auth = authedClient();
+  if (!auth) throw new Error('Conecta Google en Conexiones para crear eventos.');
+  const calendar = google.calendar({ version: 'v3', auth });
+  try {
+    const res = await calendar.events.insert({
+      calendarId: 'primary',
+      requestBody: { summary: title, start: { dateTime: start.toISOString() }, end: { dateTime: end.toISOString() } }
+    });
+    return { url: res.data.htmlLink };
+  } catch (err) {
+    if (err.code === 403 || /insufficient/i.test(err.message)) {
+      throw new Error('Google no me deja crear eventos todavía: en Conexiones toca Desconectar y luego Conectar con Google para dar el permiso nuevo.');
+    }
+    throw err;
+  }
+}
+
+module.exports = { status, connect, disconnect, fetchAll, createEvent };

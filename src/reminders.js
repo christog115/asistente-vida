@@ -38,8 +38,15 @@ function dailySummary(data) {
   return parts.length ? parts.join(' · ') : 'No tienes pendientes. ¡Buen día!';
 }
 
+// Versión para leer en voz alta: el resumen completo del asistente si ya está, sin pasarse de largo.
+function spokenSummary(data, fallback) {
+  const b = data.briefing;
+  const text = b && b.date === new Date().toDateString() && b.text ? b.text : fallback;
+  return 'Buenos días. ' + text.replace(/[*_#`]/g, '').slice(0, 700);
+}
+
 // Se llama cada minuto con los datos más recientes del tablero.
-function tick(data, openWindow) {
+function tick(data, openWindow, speak) {
   if (!data) return;
   const now = new Date();
   const slot = `${now.toDateString()} ${hhmm(now)}`;
@@ -47,6 +54,7 @@ function tick(data, openWindow) {
     lastSlot = slot;
     const summary = dailySummary(data);
     notify('Tu resumen del día', summary, openWindow);
+    if (speak) speak(spokenSummary(data, summary));
     phone.trySend('Tu resumen del día', summary, { tags: ['calendar'] });
     whatsapp.trySend('Tu resumen del día', summary);
   }

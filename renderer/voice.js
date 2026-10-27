@@ -9,26 +9,14 @@ const voice = {
 
 const COMMAND_TIMEOUT_MS = 7000;
 
-// Vosk escribe lo que oye con ortografía en español, así que "Jarvis" puede
-// llegar como "yarvis" o "jarbis". Se aceptan las variantes más comunes.
-function wakeVariants(word) {
-  const base = word.toLowerCase();
-  const out = new Set([base]);
-  if (base === 'jarvis') ['yarvis', 'jarbis', 'yarbis', 'harvis', 'charvis'].forEach((w) => out.add(w));
-  return [...out];
-}
-
-function heardWake(text) {
-  const words = (text || '').toLowerCase().split(/\s+/);
-  return voice.wakeWords.some((w) => w.split(' ').every((part) => words.includes(part)));
-}
+// La palabra clave se busca con renderer/wake.js (findWake / wakeKeys).
 
 function setVoiceState(state, detail) {
   voice.state = state;
   const labels = {
     off: 'Voz apagada',
     cargando: detail || 'Preparando la voz…',
-    espera: `Di "${voice.wakeWord}"`,
+    espera: `Di "${String(voice.wakeWord).split(',')[0].trim()}"`,
     escuchando: detail ? `Te escucho: ${detail}` : 'Te escucho…',
     pensando: 'Pensando…',
     hablando: 'Hablando…'
@@ -54,12 +42,52 @@ function beep(freq) {
   osc.stop(voice.ctx.currentTime + 0.2);
 }
 
-function spanishVoice() {
-  const voices = speechSynthesis.getVoices().filter((v) => v.lang.toLowerCase().startsWith('es'));
-  return voices.find((v) => v.lang === 'es-MX') || voices[0] || null;
+// Nombres de voces femeninas comunes en Windows/Mac; el sistema no dice el género.
+const FEMALE = /sabina|helena|laura|paulina|elvira|dalia|mónica|monica|marisol|lucia|lucía|paloma|female|mujer/i;
+let chosenVoice = '';
+let edgeVoices = [];
+let defaultEdge = '';
+let currentAudio = null;
+let piperReady = false;
+
+function spanishVoices() {
+  return speechSynthesis.getVoices().filter((v) => v.lang.toLowerCase().startsWith('es'));
 }
 
-function speak(text) {
+// Voz del sistema (respaldo y opción manual).
+function spanishVoice() {
+  const voices = spanishVoices();
+  return voices.find((v) => v.name === chosenVoice)
+    || voices.find((v) => v.lang === 'es-MX' && FEMALE.test(v.name))
+    || voices.find((v) => FEMALE.test(v.name))
+    || voices.find((v) => v.lang === 'es-MX') || voices[0] || null;
+}
+
+// Voz de Edge elegida, o la predeterminada si no se ha elegido ninguna; null si se eligió una del sistema.
+function edgeChoice() {
+  if (chosenVoice.startsWith('edge:')) return chosenVoice.slice(5);
+  return chosenVoice === '' && defaultEdge ? defaultEdge : null;
+}
+
+function fillVoices() {
+  const sel = $('voice-name');
+  sel.replaceChildren(
+    ...edgeVoices.map((v) => new Option(v.label, 'edge:' + v.id)),
+    ...(piperReady ? [new Option('Claudia (natural, sin internet)', 'piper')] : []),
+    ...spanishVoices().map((v) => new Option(`${v.name} (sin internet)`, v.name))
+  );
+  const edge = edgeChoice();
+  const cur = spanishVoice();
+  sel.value = edge ? 'edge:' + edge : chosenVoice === 'piper' ? 'piper' : (cur ? cur.name : '');
+}
+speechSynthesis.onvoiceschanged = fillVoices;
+
+function stopSpeaking() {
+  speechSynthesis.cancel();
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+}
+
+function speakSystem(text) {
   return new Promise((resolve) => {
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
@@ -70,6 +98,44 @@ function speak(text) {
     u.onerror = resolve;
     speechSynthesis.speak(u);
   });
+}
+
+async function playAudio(bytes, type) {
+  const url = URL.createObjectURL(new Blob([bytes], { type }));
+  const audio = new Audio(url);
+  currentAudio = audio;
+  try {
+    await new Promise((resolve, reject) => {
+      audio.onended = resolve;
+      audio.onpause = resolve;
+      audio.onerror = () => reject(new Error('No se pudo reproducir la voz.'));
+      audio.play().catch(reject);
+    });
+  } finally {
+    URL.revokeObjectURL(url);
+    if (currentAudio === audio) currentAudio = null;
+  }
+}
+
+const speakEdge = async (text, voiceId) => playAudio(await api.ttsSpeak(text, voiceId), 'audio/mpeg');
+const speakPiper = async (text) => playAudio(await api.piperSpeak(text), 'audio/wav');
+
+async function speak(text) {
+  stopSpeaking();
+  // Orden: voz de Edge (si es la elegida) -> voz natural sin internet (Piper) -> voz del sistema.
+  const steps = [];
+  const edge = edgeChoice();
+  if (edge) steps.push(() => speakEdge(text, edge));
+  if ((edge || chosenVoice === 'piper') && piperReady) steps.push(() => speakPiper(text));
+  for (const step of steps) {
+    try {
+      await step();
+      return;
+    } catch (err) {
+      // Sin internet o servicio caído: se prueba el siguiente.
+    }
+  }
+  await speakSystem(text);
 }
 
 async function say(text) {
@@ -86,8 +152,8 @@ function backToWaiting() {
 // Se dijo la palabra clave (o se usó el atajo): ahora se escucha la pregunta.
 function activate() {
   if (voice.state === 'off' || voice.state === 'cargando') return;
-  speechSynthesis.cancel();
-  voice.wake.retrieveFinalResult(); // descarta el "jarvis" que ya oyó
+  stopSpeaking();
+  voice.wake.retrieveFinalResult(); // descarta la palabra clave que ya oyó
   voice.heardSomething = false;
   setVoiceState('escuchando');
   beep(880);
@@ -151,7 +217,7 @@ async function startVoice() {
   if (voice.state !== 'off') return;
   const cfg = await api.voiceStatus();
   voice.wakeWord = cfg.wakeWord;
-  voice.wakeWords = wakeVariants(cfg.wakeWord);
+  voice.wakeKeys = wakeKeys(cfg.wakeWord);
   setVoiceState('cargando', cfg.modelReady ? 'Cargando la voz…' : 'Descargando la voz en español (solo la primera vez, ~40 MB)…');
   try {
     const file = await api.voicePrepare();
@@ -162,12 +228,17 @@ async function startVoice() {
     voice.ctx = new AudioContext({ sampleRate: 16000 });
     voice.model = await loadModel('voz://modelo/' + file);
     const rate = voice.ctx.sampleRate;
-    // Uno solo busca la palabra clave (gramática cerrada, casi sin falsas alarmas);
-    // el otro entiende frases completas y solo se usa después de la palabra clave.
-    voice.wake = new voice.model.KaldiRecognizer(rate, JSON.stringify([...voice.wakeWords, '[unk]']));
+    // Uno escucha de corrido y solo reacciona si lo primero que dices es la palabra clave
+    // (si dices "kara, qué hora es" de corrido, contesta sin pedirte repetir); el otro
+    // entiende la pregunta después de la palabra clave.
+    voice.wake = new voice.model.KaldiRecognizer(rate);
     voice.cmd = new voice.model.KaldiRecognizer(rate);
-    voice.wake.on('partialresult', (m) => { if (voice.state === 'espera' && heardWake(m.result.partial)) activate(); });
-    voice.wake.on('result', (m) => { if (voice.state === 'espera' && heardWake(m.result.text)) activate(); });
+    voice.wake.on('result', (m) => {
+      if (voice.state !== 'espera') return;
+      const heard = findWake(m.result.text, voice.wakeKeys);
+      if (!heard.found) return;
+      if (heard.rest) { beep(880); handleCommand(heard.rest); } else activate();
+    });
     voice.cmd.on('partialresult', (m) => {
       if (voice.state !== 'escuchando' || !m.result.partial) return;
       voice.heardSomething = true;
@@ -203,7 +274,7 @@ async function startVoice() {
 
 function stopVoice() {
   clearTimeout(voice.timer);
-  speechSynthesis.cancel();
+  stopSpeaking();
   if (voice.node) voice.node.disconnect();
   if (voice.stream) voice.stream.getTracks().forEach((t) => t.stop());
   if (voice.ctx) voice.ctx.close();
@@ -238,12 +309,41 @@ $('voice-form').onsubmit = async (e) => {
   if (voice.state !== 'off') { stopVoice(); startVoice(); }
   $('voice-status').textContent = `Palabra clave: "${cfg.wakeWord}".`;
 };
+$('voice-name').onchange = async (e) => {
+  chosenVoice = e.target.value;
+  await api.voiceSet({ voiceName: chosenVoice });
+  speak('Hola Christopher, así sueno.');
+};
+// El resumen del día también se lee en voz alta a la hora del recordatorio.
+function setPiperReady(ready) {
+  piperReady = ready;
+  $('piper-install').classList.toggle('hidden', ready);
+  $('piper-state').textContent = ready ? 'Voz sin internet instalada: sirve de respaldo.' : '';
+  fillVoices();
+}
+$('piper-install').onclick = async () => {
+  $('piper-install').disabled = true;
+  api.onPiperProgress((what, pct) => { $('piper-state').textContent = `${what}${pct >= 0 ? ' ' + pct + '%' : ''}…`; });
+  try {
+    await api.piperInstall();
+    setPiperReady(true);
+  } catch (err) {
+    $('piper-state').textContent = 'No se pudo instalar: ' + cleanError(err);
+  }
+  $('piper-install').disabled = false;
+};
+api.onVoiceSpeak((text) => { if (voice.state === 'espera') say(text); });
 $('voice-test').onclick = () => speak('Hola Christopher, aquí estoy.');
 
 (async () => {
   const cfg = await api.voiceStatus();
   $('voice-enabled').checked = cfg.enabled;
   $('voice-wake').value = cfg.wakeWord;
+  chosenVoice = cfg.voiceName || '';
+  edgeVoices = cfg.edgeVoices || [];
+  defaultEdge = cfg.defaultEdge || '';
+  setPiperReady(cfg.piperReady);
+  fillVoices();
   if (cfg.enabled) startVoice();
   else setVoiceState('off');
 })();

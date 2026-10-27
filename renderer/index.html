@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; img-src 'self' data:; worker-src blob:; connect-src 'self' voz: data:">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; img-src 'self' data:; media-src blob:; worker-src blob:; connect-src 'self' voz: data:">
   <title>Asistente de Vida</title>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -64,7 +64,7 @@
   <main id="asistente" class="view chat-view hidden">
     <section class="card chat">
       <div id="chat-log" class="chat-log">
-        <p class="muted">Pregúntame lo que quieras sobre tus tareas, tu calendario o tus correos. Por ejemplo: "¿Qué entrego esta semana?"</p>
+        <p class="muted">Pregúntame lo que quieras sobre tus tareas, tu calendario o tus correos. Por ejemplo: "¿Qué entrego esta semana?". También puedes darle órdenes: "recuérdame en 25 minutos revisar la ropa", "recuérdame cada hora tomar agua", "crea un evento el viernes a las 5 con el dentista" o "ábreme Spotify".</p>
       </div>
       <form id="chat-form" class="chat-form">
         <input id="chat-input" placeholder="Escribe tu pregunta…" autocomplete="off">
@@ -211,9 +211,14 @@
       <p class="muted">Escucha siempre una palabra clave y luego tu pregunta. El audio se procesa en tu PC; solo el texto de tu pregunta va a Claude o Gemini. También puedes hablarle con <strong>Ctrl+Shift+J</strong>.</p>
       <label class="row"><input id="voice-enabled" type="checkbox"> Escuchar siempre</label>
       <form id="voice-form" class="inline-form">
-        <input id="voice-wake" placeholder="jarvis" autocomplete="off">
+        <input id="voice-wake" placeholder="kara, jarvis" autocomplete="off">
         <button type="submit">Cambiar palabra clave</button>
       </form>
+      <label>Voz con la que habla
+        <select id="voice-name"></select>
+      </label>
+      <p class="muted">Por defecto elige una voz femenina si tu sistema la tiene (en Windows: Sabina o Helena). Si quieres más voces: Configuración → Hora e idioma → Voz → Agregar voces → Español.</p>
+      <p class="muted" id="piper-line"><button id="piper-install" class="ghost">Instalar voz natural sin internet (~85 MB)</button> <span id="piper-state"></span></p>
       <p>Estado: <strong id="voice-status"></strong></p>
       <button id="voice-test" class="ghost">Probar la voz</button>
     </section>
@@ -240,6 +245,7 @@
 
   <script src="app.js"></script>
   <script src="../node_modules/vosk-browser/dist/vosk.js"></script>
+  <script src="wake.js"></script>
   <script src="voice.js"></script>
 </body>
 </html>

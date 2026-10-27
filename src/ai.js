@@ -81,6 +81,26 @@ async function askClaude(system, messages) {
   }
 }
 
+// Gemini avisa "alta demanda" (503) seguido y casi siempre se resuelve reintentando.
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+async function withRetry(fn, tries = 3) {
+  for (let i = 1; ; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (i >= tries || ![429, 500, 503].includes(err.status)) throw err;
+      await sleep(1500 * i);
+    }
+  }
+}
+function withTimeout(promise, ms) {
+  let timer;
+  const limit = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(Object.assign(new Error('timeout'), { timeout: true })), ms);
+  });
+  return Promise.race([promise, limit]).finally(() => clearTimeout(timer));
+}
+
 async function askGemini(system, messages) {
   const key = store.getSecret('geminiKey');
   if (!key) throw new Error('Falta la clave de Gemini (Conexiones → Asistente).');
@@ -89,10 +109,14 @@ async function askGemini(system, messages) {
   const models = [store.get('geminiModel'), ...GEMINI_MODELS].filter(Boolean);
   for (const [i, model] of models.entries()) {
     try {
-      const res = await ai.models.generateContent({ model, contents, config: { systemInstruction: system } });
+      const res = await withRetry(() => withTimeout(
+        ai.models.generateContent({ model, contents, config: { systemInstruction: system } }), 30000));
       return (res.text || '').trim();
     } catch (err) {
       if (err.status === 404 && i < models.length - 1) continue;
+      if ((err.status === 503 || err.status === 500) && i < models.length - 1) continue;
+      if (err.status === 503 || err.status === 500) throw new Error('Gemini está saturado en este momento; intenta de nuevo en unos segundos.');
+      if (err.timeout) throw new Error('Gemini tardó demasiado en contestar; intenta de nuevo.');
       if (err.status === 404) throw new Error('Google retiró el modelo de Gemini que usa la app; avísale a Claude para actualizarlo.');
       if (err.status === 400 && /API_KEY_INVALID/.test(err.message)) throw new Error('La clave de Gemini no es válida.');
       if (err.status === 429) throw new Error('Gemini está ocupado; intenta en un momento.');
@@ -123,4 +147,9 @@ function ready() {
   return s[s.provider] === 'conectado';
 }
 
-module.exports = { status, setKey, setProvider, chat, dailyBriefing, ready };
+// Una pregunta suelta sin los datos del tablero (para interpretar órdenes).
+function ask(system, text) {
+  return provider() === 'gemini' ? askGemini(system, [{ role: 'user', content: text }]) : askClaude(system, [{ role: 'user', content: text }]);
+}
+
+module.exports = { status, setKey, setProvider, chat, ask, dailyBriefing, ready };
