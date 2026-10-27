@@ -87,6 +87,27 @@ Canva exige que crees tu propia integración (gratis, solo lectura):
 
 Aparecen tus 8 diseños más recientes en el tablero (y en la app del celular). Las claves se guardan cifradas.
 
+## Spotify
+
+Spotify también pide tu propia app (gratis, solo lectura; no hay secreto, solo Client ID):
+
+1. Entra a <https://developer.spotify.com/dashboard> y crea una app. En **Redirect URIs** agrega `http://127.0.0.1:47824/spotify` y en **APIs** marca *Web API*.
+2. Copia el **Client ID**.
+3. En la app: **Conexiones → Spotify** → pega el Client ID → **Guardar** → **Conectar con Spotify** y acepta en el navegador.
+
+Muestra lo que suena ahora y las últimas 8 canciones (en el tablero y en la app del celular). Spotify puede pedir que tu cuenta esté agregada a la app mientras está en modo desarrollo (**User Management** en el dashboard).
+
+## WhatsApp (avisos)
+
+Usa la API oficial de Meta (WhatsApp Cloud API), gratis para este uso. Solo manda avisos a tu número; no lee tus chats.
+
+1. Entra a <https://developers.facebook.com>, crea una app de tipo **Business** y agrega el producto **WhatsApp**.
+2. En **WhatsApp → Configuración de la API** verás un número de prueba: copia su **ID del número de teléfono** y agrega tu número en "Para" (te llega un código por WhatsApp).
+3. Crea un **token permanente** (Configuración del negocio → Usuarios del sistema → generar token con el permiso `whatsapp_business_messaging`). El token temporal de la pantalla dura 24 h.
+4. En la app: **Conexiones → WhatsApp** → pega token, ID y tu número con lada (ej. `523312345678`) → **Guardar** → **Enviar prueba**.
+
+Importante: WhatsApp solo deja mandar texto libre durante 24 h después de que tú le escribes al número de la API. Para recibir avisos cada día, mándale un "hola" a ese número de vez en cuando (o aprueba una plantilla en Meta). La prueba usa la plantilla `hello_world` y siempre llega.
+
 ## Conectar la escuela (Moodle)
 
 En **Conexiones** hay dos opciones:
@@ -106,4 +127,5 @@ En **Conexiones** hay dos opciones:
 - ~~**Fase 3:** avisos en el celular.~~ Listo.
 - ~~**Fase 3b:** app del celular que se conecta a la PC.~~ Lista para probar (falta compilar el APK y probarla en un celular real).
 - ~~**Fase 4:** Canva~~ Lista para probar (falta probarla con tu cuenta de Canva). Incluye la voz tipo Jarvis.
+- **Fase 5:** Spotify y avisos por WhatsApp (oficial). Listas para probar con tus cuentas.
 - **Más adelante:** más integraciones (dime cuáles).

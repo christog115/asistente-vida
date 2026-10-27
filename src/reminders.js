@@ -4,6 +4,7 @@
 const { Notification } = require('electron');
 const store = require('./store');
 const phone = require('./phone');
+const whatsapp = require('./whatsapp');
 
 const DAY = 24 * 3600 * 1000;
 let lastSlot = null;
@@ -47,6 +48,7 @@ function tick(data, openWindow) {
     const summary = dailySummary(data);
     notify('Tu resumen del día', summary, openWindow);
     phone.trySend('Tu resumen del día', summary, { tags: ['calendar'] });
+    whatsapp.trySend('Tu resumen del día', summary);
   }
   for (const t of data.school || []) {
     if (!t.due) continue;
@@ -57,6 +59,7 @@ function tick(data, openWindow) {
       const body = `${t.course} · ${new Date(t.due).toLocaleString('es-MX')}`;
       notify(`Vence pronto: ${t.title}`, body, openWindow);
       phone.trySend(`Vence pronto: ${t.title}`, body, { priority: 4, tags: ['warning'] });
+      whatsapp.trySend(`Vence pronto: ${t.title}`, body);
     }
   }
 }

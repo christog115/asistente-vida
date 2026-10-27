@@ -9,6 +9,8 @@ const ai = require('./src/ai');
 const voice = require('./src/voice');
 const phone = require('./src/phone');
 const canva = require('./src/canva');
+const spotify = require('./src/spotify');
+const whatsapp = require('./src/whatsapp');
 const mobile = require('./src/mobile');
 const store = require('./src/store');
 
@@ -80,7 +82,9 @@ function createTray() {
 
 async function refresh() {
   const safe = (p) => p.catch((err) => ({ error: err.message }));
-  const [g, m, c] = await Promise.all([safe(google.fetchAll()), safe(moodle.fetchPending()), safe(canva.recentDesigns())]);
+  const [g, m, c, sp] = await Promise.all([
+    safe(google.fetchAll()), safe(moodle.fetchPending()), safe(canva.recentDesigns()), safe(spotify.fetchAll())
+  ]);
   const school = [];
   for (const part of [g && g.school, m]) {
     if (Array.isArray(part)) school.push(...part);
@@ -91,10 +95,11 @@ async function refresh() {
     emails: g && g.emails, events: g && g.events, tasks: g && g.tasks, files: g && g.files,
     sheet: g && g.sheet,
     designs: c,
+    spotify: sp,
     school,
     briefing: store.get('briefing') || null,
     errors: {
-      canva: c && c.error, google: g && g.error, classroom: g && g.school && g.school.error, moodle: m && m.error
+      canva: c && c.error, spotify: sp && sp.error, google: g && g.error, classroom: g && g.school && g.school.error, moodle: m && m.error
     }
   };
   if (win) win.webContents.send('data', latest);
@@ -130,6 +135,8 @@ function statuses() {
     google: google.status(),
     moodle: moodle.status(),
     canva: canva.status(),
+    spotify: spotify.status(),
+    whatsapp: whatsapp.status(),
     moodleUrl: store.get('moodle').url,
     reminderTimes: store.get('reminderTimes'),
     autoStart: app.getLoginItemSettings(loginItem()).openAtLogin,
@@ -160,6 +167,12 @@ ipcMain.handle('moodle-disconnect', () => { moodle.disconnect(); return refresh(
 ipcMain.handle('canva-set-app', (_e, id, secret) => { canva.setApp(id, secret); return refresh(); });
 ipcMain.handle('canva-connect', async () => { await canva.connect(); return refresh(); });
 ipcMain.handle('canva-disconnect', () => { canva.disconnect(); return refresh(); });
+ipcMain.handle('spotify-set-app', (_e, id) => { spotify.setApp(id); return refresh(); });
+ipcMain.handle('spotify-connect', async () => { await spotify.connect(); return refresh(); });
+ipcMain.handle('spotify-disconnect', () => { spotify.disconnect(); return refresh(); });
+ipcMain.handle('whatsapp-save', (_e, cfg) => whatsapp.save(cfg));
+ipcMain.handle('whatsapp-test', () => whatsapp.sendTest());
+ipcMain.handle('whatsapp-disconnect', () => whatsapp.disconnect());
 ipcMain.handle('set-sheet-url', (_e, url) => { store.set('sheetUrl', url); return refresh(); });
 ipcMain.handle('ai-set-key', (_e, which, key) => ai.setKey(which, key));
 ipcMain.handle('ai-set-provider', (_e, p) => ai.setProvider(p));
