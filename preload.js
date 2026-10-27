@@ -33,6 +33,7 @@ contextBridge.exposeInMainWorld('asistente', {
   voiceState: (text) => ipcRenderer.invoke('voice-state', text),
   showWindow: () => ipcRenderer.invoke('show-window'),
   onVoiceProgress: (cb) => ipcRenderer.on('voice-progress', (_e, pct) => cb(pct)),
+  onVoiceSpeak: (cb) => ipcRenderer.on('voice-speak', (_e, text) => cb(text)),
   onVoiceActivate: (cb) => ipcRenderer.on('voice-activate', () => cb()),
   aiBriefing: () => ipcRenderer.invoke('ai-briefing'),
   phoneCreate: () => ipcRenderer.invoke('phone-create'),

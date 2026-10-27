@@ -229,7 +229,9 @@ app.whenReady().then(() => {
   createTray();
   refresh();
   setInterval(refresh, REFRESH_MS);
-  setInterval(() => reminders.tick(latest, showWindow), 60 * 1000);
+  setInterval(() => reminders.tick(latest, showWindow, (text) => {
+    if (win && voice.status().enabled) win.webContents.send('voice-speak', text);
+  }), 60 * 1000);
 });
 
 app.on('activate', showWindow);

@@ -11,10 +11,17 @@ const COMMAND_TIMEOUT_MS = 7000;
 
 // Vosk escribe lo que oye con ortografía en español, así que "Jarvis" puede
 // llegar como "yarvis" o "jarbis". Se aceptan las variantes más comunes.
+// Puedes escribir varias palabras separadas por coma ("kara, cara") para cubrir cómo la oye el reconocedor.
+const ALIASES = {
+  jarvis: ['yarvis', 'jarbis', 'yarbis', 'harvis', 'charvis'],
+  kara: ['cara', 'karra']
+};
 function wakeVariants(word) {
-  const base = word.toLowerCase();
-  const out = new Set([base]);
-  if (base === 'jarvis') ['yarvis', 'jarbis', 'yarbis', 'harvis', 'charvis'].forEach((w) => out.add(w));
+  const out = new Set();
+  for (const base of word.toLowerCase().split(',').map((w) => w.trim()).filter(Boolean)) {
+    out.add(base);
+    (ALIASES[base] || []).forEach((w) => out.add(w));
+  }
   return [...out];
 }
 
@@ -263,6 +270,8 @@ $('voice-name').onchange = async (e) => {
   await api.voiceSet({ voiceName: chosenVoice });
   speak('Hola Christopher, así sueno.');
 };
+// El resumen del día también se lee en voz alta a la hora del recordatorio.
+api.onVoiceSpeak((text) => { if (voice.state === 'espera') say(text); });
 $('voice-test').onclick = () => speak('Hola Christopher, aquí estoy.');
 
 (async () => {
