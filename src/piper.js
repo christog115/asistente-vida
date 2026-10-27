@@ -17,8 +17,8 @@ const BUILDS = {
   'darwin-x64': 'piper_macos_x64.tar.gz',
   'linux-x64': 'piper_linux_x86_64.tar.gz'
 };
-// Voz mexicana "claudia" (calidad alta). Se puede cambiar en config.json ("piperModelUrl").
-const MODEL_URL = 'https://huggingface.co/rhasspy/piper-voices/resolve/main/es/es_MX/claudia/high/es_MX-claudia-high.onnx';
+// Voz mexicana "claude" (calidad alta). Se puede cambiar en config.json ("piperModelUrl").
+const MODEL_URL = 'https://huggingface.co/rhasspy/piper-voices/resolve/main/es/es_MX/claude/high/es_MX-claude-high.onnx';
 
 const dir = () => path.join(app.getPath('userData'), 'piper');
 const exe = () => path.join(dir(), 'piper', process.platform === 'win32' ? 'piper.exe' : 'piper');

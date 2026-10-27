@@ -7,7 +7,9 @@ const voice = {
   timer: null, heardSomething: false
 };
 
-const COMMAND_TIMEOUT_MS = 7000;
+const COMMAND_TIMEOUT_MS = 7000; // si no empiezas a hablar en este tiempo, se cancela
+const SILENCE_MS = 1800;         // la orden termina cuando pasas este tiempo en silencio
+const MAX_COMMAND_MS = 30000;    // tope por si hay ruido constante
 
 // La palabra clave se busca con renderer/wake.js (findWake / wakeKeys).
 
@@ -73,7 +75,7 @@ function fillVoices() {
   const sel = $('voice-name');
   sel.replaceChildren(
     ...edgeVoices.map((v) => new Option(v.label, 'edge:' + v.id)),
-    ...(piperReady ? [new Option('Claudia (natural, sin internet)', 'piper')] : []),
+    ...(piperReady ? [new Option('Claude (natural, sin internet)', 'piper')] : []),
     ...spanishVoices().map((v) => new Option(`${v.name} (sin internet)`, v.name))
   );
   const edge = edgeChoice();
@@ -146,6 +148,8 @@ async function say(text) {
 
 function backToWaiting() {
   clearTimeout(voice.timer);
+  clearTimeout(voice.silence);
+  clearTimeout(voice.maxTimer);
   if (voice.state !== 'off') setVoiceState('espera');
 }
 
@@ -155,14 +159,31 @@ function activate() {
   stopSpeaking();
   voice.wake.retrieveFinalResult(); // descarta la palabra clave que ya oyó
   voice.heardSomething = false;
+  voice.said = '';
+  voice.partial = '';
   setVoiceState('escuchando');
   beep(880);
   clearTimeout(voice.timer);
+  clearTimeout(voice.silence);
   voice.timer = setTimeout(() => {
-    if (voice.state !== 'escuchando') return;
-    if (voice.heardSomething) voice.cmd.retrieveFinalResult();
-    else { beep(440); backToWaiting(); }
+    if (voice.state !== 'escuchando' || voice.heardSomething) return;
+    beep(440);
+    backToWaiting();
   }, COMMAND_TIMEOUT_MS);
+  voice.maxTimer = setTimeout(finishCommand, MAX_COMMAND_MS);
+}
+
+// Vosk corta la frase en cuanto haces una pausa corta; aquí se junta todo lo que dices
+// y la orden se da por terminada hasta que pasas un rato en silencio.
+function finishCommand() {
+  clearTimeout(voice.silence);
+  clearTimeout(voice.maxTimer);
+  if (voice.state !== 'escuchando') return;
+  const text = `${voice.said} ${voice.partial}`.trim();
+  voice.said = '';
+  voice.partial = '';
+  if (text) handleCommand(text);
+  else { beep(440); backToWaiting(); }
 }
 
 // Órdenes que se resuelven aquí mismo, sin preguntarle a la inteligencia.
@@ -175,6 +196,8 @@ const LOCAL_COMMANDS = [
 
 async function handleCommand(text) {
   clearTimeout(voice.timer);
+  clearTimeout(voice.silence);
+  clearTimeout(voice.maxTimer);
   const local = LOCAL_COMMANDS.find(([re]) => re.test(text));
   if (local) return local[1]();
   setVoiceState('pensando');
@@ -242,12 +265,21 @@ async function startVoice() {
     voice.cmd.on('partialresult', (m) => {
       if (voice.state !== 'escuchando' || !m.result.partial) return;
       voice.heardSomething = true;
-      setVoiceState('escuchando', m.result.partial);
+      voice.partial = m.result.partial;
+      setVoiceState('escuchando', `${voice.said} ${voice.partial}`.trim());
+      clearTimeout(voice.silence);
+      voice.silence = setTimeout(finishCommand, SILENCE_MS);
     });
     voice.cmd.on('result', (m) => {
       if (voice.state !== 'escuchando') return;
       const text = (m.result.text || '').trim();
-      if (text) handleCommand(text);
+      if (!text) return;
+      voice.said = `${voice.said} ${text}`.trim();
+      voice.partial = '';
+      voice.heardSomething = true;
+      setVoiceState('escuchando', voice.said);
+      clearTimeout(voice.silence);
+      voice.silence = setTimeout(finishCommand, SILENCE_MS);
     });
     const source = voice.ctx.createMediaStreamSource(voice.stream);
     voice.node = voice.ctx.createScriptProcessor(4096, 1, 1);
@@ -274,6 +306,8 @@ async function startVoice() {
 
 function stopVoice() {
   clearTimeout(voice.timer);
+  clearTimeout(voice.silence);
+  clearTimeout(voice.maxTimer);
   stopSpeaking();
   if (voice.node) voice.node.disconnect();
   if (voice.stream) voice.stream.getTracks().forEach((t) => t.stop());
