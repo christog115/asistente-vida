@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; img-src 'self' data:; worker-src blob:; connect-src 'self' voz: data:">
   <title>Asistente de Vida</title>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -12,6 +12,7 @@
       <h1 id="greeting">Hola</h1>
       <p id="summary" class="muted">Cargando…</p>
     </div>
+    <span id="voice-pill" class="voice-pill hidden"></span>
     <nav>
       <button data-view="tablero" class="tab active">Tablero</button>
       <button data-view="asistente" class="tab">Asistente</button>
@@ -48,6 +49,15 @@
     <section class="card">
       <h2>Archivos recientes de Drive</h2>
       <ul id="files" class="list"></ul>
+    </section>
+    <section class="card">
+      <h2>Diseños recientes de Canva</h2>
+      <ul id="designs" class="list"></ul>
+    </section>
+    <section class="card">
+      <h2>Spotify</h2>
+      <p id="spotify-now" class="muted"></p>
+      <ul id="spotify-recent" class="list"></ul>
     </section>
   </main>
 
@@ -91,6 +101,45 @@
         <input id="gemini-key" type="password" placeholder="Clave de API de Gemini" autocomplete="off">
         <button type="submit">Guardar</button>
       </form>
+    </section>
+
+    <section class="card">
+      <h2>Canva</h2>
+      <p class="muted">Muestra tus diseños más recientes. Canva pide que crees tu propia integración (gratis, solo lectura); los pasos están en el README.</p>
+      <p>Estado: <strong id="canva-status"></strong></p>
+      <form id="canva-form">
+        <input id="canva-id" placeholder="Client ID" autocomplete="off">
+        <input id="canva-secret" type="password" placeholder="Client Secret" autocomplete="off">
+        <button type="submit">Guardar claves</button>
+      </form>
+      <button id="canva-connect" class="hidden">Conectar con Canva</button>
+      <button id="canva-disconnect" class="ghost hidden">Desconectar</button>
+    </section>
+
+    <section class="card">
+      <h2>Spotify</h2>
+      <p class="muted">Muestra lo que suena y lo último que escuchaste (solo lectura). Necesitas crear una app gratis en Spotify; los pasos están en el README.</p>
+      <p>Estado: <strong id="spotify-status"></strong></p>
+      <form id="spotify-form">
+        <input id="spotify-id" placeholder="Client ID" autocomplete="off">
+        <button type="submit">Guardar Client ID</button>
+      </form>
+      <button id="spotify-connect" class="hidden">Conectar con Spotify</button>
+      <button id="spotify-disconnect" class="ghost hidden">Desconectar</button>
+    </section>
+
+    <section class="card">
+      <h2>WhatsApp</h2>
+      <p class="muted">Recibe el resumen del día y los avisos de tareas por WhatsApp (solo avisos a tu número, no lee tus chats). Usa la API oficial de Meta; los pasos están en el README.</p>
+      <p>Estado: <strong id="whatsapp-status"></strong></p>
+      <form id="whatsapp-form">
+        <input id="wa-token" type="password" placeholder="Token de acceso" autocomplete="off">
+        <input id="wa-phone-id" placeholder="ID del número de teléfono (de Meta)" autocomplete="off">
+        <input id="wa-to" placeholder="Tu número con lada, ej. 523312345678" autocomplete="off">
+        <button type="submit">Guardar</button>
+      </form>
+      <button id="whatsapp-test" class="ghost">Enviar prueba</button>
+      <button id="whatsapp-disconnect" class="ghost">Desconectar</button>
     </section>
 
     <section class="card">
@@ -158,6 +207,18 @@
     </section>
 
     <section class="card">
+      <h2>Voz (Jarvis)</h2>
+      <p class="muted">Escucha siempre una palabra clave y luego tu pregunta. El audio se procesa en tu PC; solo el texto de tu pregunta va a Claude o Gemini. También puedes hablarle con <strong>Ctrl+Shift+J</strong>.</p>
+      <label class="row"><input id="voice-enabled" type="checkbox"> Escuchar siempre</label>
+      <form id="voice-form" class="inline-form">
+        <input id="voice-wake" placeholder="jarvis" autocomplete="off">
+        <button type="submit">Cambiar palabra clave</button>
+      </form>
+      <p>Estado: <strong id="voice-status"></strong></p>
+      <button id="voice-test" class="ghost">Probar la voz</button>
+    </section>
+
+    <section class="card">
       <h2>Recordatorios</h2>
       <label>Horas del resumen diario (separadas por coma)
         <input id="reminder-times" placeholder="07:00, 20:00">
@@ -169,5 +230,7 @@
   </main>
 
   <script src="app.js"></script>
+  <script src="../node_modules/vosk-browser/dist/vosk.js"></script>
+  <script src="voice.js"></script>
 </body>
 </html>

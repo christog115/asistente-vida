@@ -77,6 +77,20 @@ form { display: grid; gap: 8px; }
 .chat-form, .inline-form { display: flex; gap: 8px; }
 .chat-form input, .inline-form input { flex: 1; }
 #new-briefing { align-self: flex-start; }
+.voice-pill {
+  margin-left: auto;
+  margin-right: 12px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+  max-width: 40ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.voice-pill.escuchando, .voice-pill.hablando { border-color: var(--accent); color: var(--accent); }
 
 .steps { padding-left: 20px; margin: 8px 0 12px; }
 .qr { margin-top: 12px; }

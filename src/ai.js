@@ -47,7 +47,9 @@ function context(data) {
     pendientes: pick(data && data.tasks).map(({ title, due, list }) => ({ title, due, list })),
     hoja: pick(data && data.sheet),
     correos: pick(data && data.emails).map(({ from, subject }) => ({ from, subject })),
-    archivos: pick(data && data.files).map(({ name }) => name)
+    archivos: pick(data && data.files).map(({ name }) => name),
+    spotify: data && data.spotify && !data.spotify.error ? { sonandoAhora: data.spotify.nowPlaying, reciente: pick(data.spotify.recent).map(({ title, artist }) => ({ title, artist })) } : undefined,
+    disenosCanva: pick(data && data.designs).map(({ title, updatedAt }) => ({ title, updatedAt }))
   });
 }
 
@@ -96,9 +98,13 @@ async function askGemini(system, messages) {
   }
 }
 
+const VOICE = `Esta respuesta se va a leer en voz alta: contesta en una a tres
+frases cortas, sin listas, sin markdown, sin emojis y sin links.`;
+
 // history: [{ role: 'user' | 'assistant', content: string }]
-async function chat(history, data) {
-  const system = `${SYSTEM}\n\nDatos actuales:\n${context(data)}`;
+// opts.voice: la pregunta llegó por voz y la respuesta se va a hablar.
+async function chat(history, data, opts = {}) {
+  const system = `${SYSTEM}${opts.voice ? '\n\n' + VOICE : ''}\n\nDatos actuales:\n${context(data)}`;
   return provider() === 'gemini' ? askGemini(system, history) : askClaude(system, history);
 }
 
