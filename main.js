@@ -16,6 +16,7 @@ const tts = require('./src/tts');
 const piper = require('./src/piper');
 const actions = require('./src/actions');
 const alarms = require('./src/alarms');
+const apps = require('./src/apps');
 const mobile = require('./src/mobile');
 const store = require('./src/store');
 
@@ -143,6 +144,8 @@ function statuses() {
     spotify: spotify.status(),
     whatsapp: whatsapp.status(),
     update: updater.status(),
+    apps: apps.list(),
+    alarms: alarms.list(),
     moodleUrl: store.get('moodle').url,
     reminderTimes: store.get('reminderTimes'),
     autoStart: app.getLoginItemSettings(loginItem()).openAtLogin,
@@ -221,6 +224,10 @@ ipcMain.handle('phone-test', async () => {
 ipcMain.handle('mobile-set-enabled', (_e, on) => { mobile.setEnabled(on); return mobile.status(); });
 ipcMain.handle('mobile-start-pairing', () => mobile.startPairing());
 ipcMain.handle('mobile-revoke', (_e, id) => { mobile.revoke(id); return mobile.status(); });
+ipcMain.handle('apps-add', (_e, name, target) => apps.add(name, target));
+ipcMain.handle('apps-remove', (_e, name) => apps.remove(name));
+ipcMain.handle('alarms-remove', (_e, id) => alarms.remove(id));
+ipcMain.handle('alarms-clear', () => alarms.clear());
 ipcMain.handle('set-reminders', (_e, times) => store.set('reminderTimes', times));
 ipcMain.handle('set-autostart', (_e, on) => {
   app.setLoginItemSettings(loginItem(on));

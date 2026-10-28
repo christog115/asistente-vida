@@ -121,7 +121,8 @@ Di la palabra clave ("kara" o "jarvis", se cambia en Conexiones → Voz) y luego
 
 - "Recuérdame en 25 minutos revisar la ropa" · "Recuérdame cada hora tomar agua" · "Qué recordatorios tengo" · "Cancela mis recordatorios". Te avisa con notificación, en voz alta si la voz está activa, y en el celular.
 - "Crea un evento el viernes a las 5 de la tarde, dentista" (Google Calendar; si Google te pide permiso, toca Desconectar y Conectar con Google una vez).
-- "Ábreme Spotify" · "Inicia Marvel Rivals" (por Steam). Solo abre una lista fija (Spotify, Marvel Rivals, Steam, Discord, WhatsApp, Canva, YouTube, Gmail, Classroom, Calendario, Drive); para agregar más escribe en `config.json` → `"apps": { "mi juego": "steam://rungameid/NUMERO" }`.
+- "Ábreme Spotify" · "Inicia Marvel Rivals" (por Steam). Solo abre una lista fija (Spotify, Marvel Rivals, Steam, Discord, WhatsApp, Canva, YouTube, Gmail, Classroom, Calendario, Drive); para agregar más ve a **Conexiones → Programas que puedo abrir** y escribe el nombre que dirás y un enlace (`steam://rungameid/NUMERO`) o la ruta completa del programa.
+- Los recordatorios pendientes se ven y se borran en **Conexiones → Recordatorios de voz**.
 
 La orden la interpreta Claude o Gemini, pero solo con lo que tú dices, nunca con el contenido de tus correos o tareas.
 

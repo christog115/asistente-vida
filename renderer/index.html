@@ -233,6 +233,24 @@
     </section>
 
     <section class="card">
+      <h2>Recordatorios de voz</h2>
+      <p class="muted">Los que le pides al asistente ("recuérdame en 25 minutos…").</p>
+      <ul id="alarms" class="list"></ul>
+      <button id="alarms-clear" class="ghost hidden">Borrar todos</button>
+    </section>
+
+    <section class="card">
+      <h2>Programas que puedo abrir</h2>
+      <p class="muted">Di "ábreme Spotify" o "inicia Marvel Rivals". Agrega los tuyos con un enlace (https://, steam://rungameid/NÚMERO) o la ruta completa del programa.</p>
+      <ul id="apps" class="list"></ul>
+      <form id="apps-form">
+        <input id="app-name" placeholder="Nombre (lo que dirás)" autocomplete="off">
+        <input id="app-target" placeholder="Enlace o ruta, ej. C:\\Juegos\\juego.exe" autocomplete="off">
+        <button type="submit">Agregar</button>
+      </form>
+    </section>
+
+    <section class="card">
       <h2>Actualizaciones</h2>
       <p class="muted">La app busca versiones nuevas sola y las instala al cerrarse.</p>
       <label class="row"><input id="auto-update" type="checkbox"> Actualizarse automáticamente</label>

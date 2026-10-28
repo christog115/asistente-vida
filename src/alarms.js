@@ -15,6 +15,10 @@ function add({ text, at, everyMs }) {
 
 const list = () => all().slice().sort((a, b) => a.at - b.at);
 
+function remove(id) {
+  store.set('alarms', all().filter((a) => a.id !== id));
+}
+
 function clear() {
   const n = all().length;
   store.set('alarms', []);
@@ -38,4 +42,4 @@ function due(now = Date.now()) {
   return fired;
 }
 
-module.exports = { add, list, clear, due, MIN_REPEAT_MS };
+module.exports = { add, list, remove, clear, due, MIN_REPEAT_MS };

@@ -22,3 +22,8 @@ jobs:
       - run: npx electron-builder --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Opcional: con estos secretos en GitHub (Settings → Secrets → Actions) el instalador sale firmado.
+          # Windows: CSC_LINK (certificado .pfx en base64) y CSC_KEY_PASSWORD.
+          # Mac: además APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD y APPLE_TEAM_ID.
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
