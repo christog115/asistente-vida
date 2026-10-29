@@ -114,6 +114,7 @@ async function askGemini(system, messages) {
   // Primero el que funcionó la última vez; si Google retira modelos, se prueban los demás.
   const models = [...new Set([store.get('geminiModel'), store.get('geminiModelOk'), ...GEMINI_MODELS].filter(Boolean))];
   let first404 = null;
+  let first429 = null;
   for (const [i, model] of models.entries()) {
     try {
       // Sin "pensar" largo contesta mucho más rápido; si el modelo no acepta ese ajuste, se reintenta sin él.
@@ -127,13 +128,15 @@ async function askGemini(system, messages) {
       return (res.text || '').trim();
     } catch (err) {
       if (err.status === 404 && !first404) first404 = `${model}: ${googleMessage(err)}`;
-      if (err.status === 404 && i < models.length - 1) continue;
+      if (err.status === 429 && !first429) first429 = `${model}: ${googleMessage(err)}`;
+      if ((err.status === 404 || err.status === 429) && i < models.length - 1) continue;
       if ((err.status === 503 || err.status === 500) && i < models.length - 1) continue;
       if (err.status === 503 || err.status === 500) throw new Error('Gemini está saturado en este momento; intenta de nuevo en unos segundos.');
       if (err.timeout) throw new Error('Gemini tardó demasiado en contestar; intenta de nuevo.');
       if (err.status === 404) throw new Error(`Google no encontró ningún modelo de Gemini para tu clave (${first404}). Avísale a Claude con este mensaje o cambia a Claude en Conexiones → Asistente.`);
       if (err.status === 400 && /API_KEY_INVALID/.test(err.message)) throw new Error('La clave de Gemini no es válida.');
-      if (err.status === 429) throw new Error('Gemini está ocupado; intenta en un momento.');
+      // 429 = cuota o límite de la clave (no es "ocupado"); se muestra lo que dice Google.
+      if (err.status === 429) throw new Error(`Google rechazó la petición por límite de cuota de tu clave de Gemini (${first429}). Espera un minuto, revisa la cuota en aistudio.google.com o cambia a Claude en Conexiones → Asistente.`);
       throw err;
     }
   }
