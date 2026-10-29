@@ -48,4 +48,27 @@ async function open(name) {
   return app.name;
 }
 
-module.exports = { names, find, open };
+// Lista para la pantalla: los de fábrica y los que agregaste (estos se pueden quitar).
+function list() {
+  const mine = store.get('apps') || {};
+  return Object.entries(registry()).map(([name, target]) => ({ name, target, custom: Object.prototype.hasOwnProperty.call(mine, name) }));
+}
+
+const BLOCKED = /^(javascript|data|vbscript|file|blob):/i;
+function add(name, target) {
+  name = String(name || '').trim().toLowerCase().slice(0, 40);
+  target = String(target || '').trim().slice(0, 500);
+  if (!name || !target) throw new Error('Escribe el nombre y el enlace o la ruta del programa.');
+  const isPath = /^([a-z]:[\\/]|\/)/i.test(target);
+  const isLink = /^[a-z][a-z0-9+.-]*:/i.test(target) && !BLOCKED.test(target);
+  if (!isPath && !isLink) throw new Error('Pon un enlace (https://, steam://, spotify:...) o la ruta completa del programa (C:\\...).');
+  store.set('apps', { ...(store.get('apps') || {}), [name]: target });
+}
+
+function remove(name) {
+  const mine = { ...(store.get('apps') || {}) };
+  delete mine[name];
+  store.set('apps', mine);
+}
+
+module.exports = { names, find, open, list, add, remove };

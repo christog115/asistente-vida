@@ -112,6 +112,8 @@ async function renderStatus() {
   $('spotify-disconnect').classList.toggle('hidden', s.spotify === 'sin-credenciales');
   $('whatsapp-status').textContent = { conectado: 'Conectado', pausado: 'Pausado', desconectado: 'Sin conectar' }[s.whatsapp];
   renderUpdate(s.update);
+  renderAlarms(s.alarms);
+  renderApps(s.apps);
   $('moodle-url').value = s.moodleUrl;
   $('reminder-times').value = s.reminderTimes.join(', ');
   $('autostart').checked = s.autoStart;
@@ -294,6 +296,58 @@ $('whatsapp-form').onsubmit = (e) => {
 };
 $('whatsapp-test').onclick = () => run(() => api.whatsappTest(), 'Prueba enviada: revisa tu WhatsApp.');
 $('whatsapp-disconnect').onclick = () => run(() => api.whatsappDisconnect(), 'WhatsApp desconectado.');
+function describeRepeat(ms) {
+  const min = Math.round(ms / 60000);
+  return min % 60 === 0 ? `cada ${min / 60 === 1 ? 'hora' : min / 60 + ' horas'}` : `cada ${min} minutos`;
+}
+function renderAlarms(list) {
+  const ul = $('alarms');
+  ul.replaceChildren();
+  $('alarms-clear').classList.toggle('hidden', !list.length);
+  if (!list.length) ul.append(li('Sin recordatorios.', 'muted'));
+  for (const a of list) {
+    const row = li('', 'devices-row');
+    const label = document.createElement('span');
+    label.textContent = `${a.text} · ${fmtDate(new Date(a.at).toISOString())}${a.every ? ' · ' + describeRepeat(a.every) : ''}`;
+    const del = document.createElement('button');
+    del.className = 'ghost';
+    del.textContent = 'Borrar';
+    del.onclick = () => run(() => api.alarmsRemove(a.id), 'Recordatorio borrado.');
+    row.append(label, del);
+    ul.append(row);
+  }
+}
+$('alarms-clear').onclick = () => run(() => api.alarmsClear(), 'Recordatorios borrados.');
+
+function renderApps(list) {
+  const ul = $('apps');
+  ul.replaceChildren();
+  for (const a of list) {
+    const row = li('', 'devices-row');
+    const label = document.createElement('span');
+    label.textContent = a.name + (a.custom ? ' · ' + a.target : '');
+    row.append(label);
+    if (a.custom) {
+      const del = document.createElement('button');
+      del.className = 'ghost';
+      del.textContent = 'Quitar';
+      del.onclick = () => run(() => api.appsRemove(a.name), 'Programa quitado.');
+      row.append(del);
+    }
+    ul.append(row);
+  }
+}
+$('apps-form').onsubmit = (e) => {
+  e.preventDefault();
+  const name = $('app-name').value;
+  const target = $('app-target').value;
+  run(async () => {
+    await api.appsAdd(name, target);
+    $('app-name').value = '';
+    $('app-target').value = '';
+  }, 'Programa agregado.');
+};
+
 const UPDATE_TEXT = {
   inactivo: 'sin revisar aún', buscando: 'buscando…', 'al-dia': 'estás al día',
   descargando: 'descargando la nueva…', lista: 'lista para instalar', error: 'no se pudo revisar',
