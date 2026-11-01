@@ -120,6 +120,7 @@ En **Conexiones** hay dos opciones:
 Di la palabra clave ("kara" o "jarvis", se cambia en Conexiones → Voz) y luego tu orden, o escríbela en el chat:
 
 - "Recuérdame en 25 minutos revisar la ropa" · "Recuérdame cada hora tomar agua" · "Qué recordatorios tengo" · "Cancela mis recordatorios". Te avisa con notificación, en voz alta si la voz está activa, y en el celular.
+- "Agrega a mis pendientes entregar el ensayo el viernes" · "Anótame comprar leche" (se guarda en Google Tasks; la primera vez toca Desconectar y Conectar con Google para dar el permiso de escribir tareas).
 - "Crea un evento el viernes a las 5 de la tarde, dentista" (Google Calendar; si Google te pide permiso, toca Desconectar y Conectar con Google una vez).
 - "Ábreme Spotify" · "Inicia Marvel Rivals" (por Steam). Solo abre una lista fija (Spotify, Marvel Rivals, Steam, Discord, WhatsApp, Canva, YouTube, Gmail, Classroom, Calendario, Drive); para agregar más ve a **Conexiones → Programas que puedo abrir** y escribe el nombre que dirás y un enlace (`steam://rungameid/NUMERO`) o la ruta completa del programa.
 - Los recordatorios pendientes se ven y se borran en **Conexiones → Recordatorios de voz**.
