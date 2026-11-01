@@ -7,6 +7,8 @@ const phone = require('./phone');
 const whatsapp = require('./whatsapp');
 
 const DAY = 24 * 3600 * 1000;
+// Cada entrega avisa dos veces: a menos de 24 h y a menos de 3 h (esta última también en voz alta).
+const STAGES = [{ ms: 3 * 3600 * 1000, tag: '3h' }, { ms: DAY, tag: '24h' }];
 let lastSlot = null;
 // Se guarda en disco para no repetir avisos (PC y celular) cuando reinicias la app.
 const warned = new Set(store.get('warned') || []);
@@ -61,14 +63,21 @@ function tick(data, openWindow, speak) {
   for (const t of data.school || []) {
     if (!t.due) continue;
     const left = new Date(t.due) - now;
-    const key = `${t.source}:${t.title}:${t.due}`;
-    if (left > 0 && left < DAY && !warned.has(key)) {
-      remember(key);
-      const body = `${t.course} · ${new Date(t.due).toLocaleString('es-MX')}`;
-      notify(`Vence pronto: ${t.title}`, body, openWindow);
-      phone.trySend(`Vence pronto: ${t.title}`, body, { priority: 4, tags: ['warning'] });
-      whatsapp.trySend(`Vence pronto: ${t.title}`, body);
-    }
+    if (left <= 0) continue;
+    const base = `${t.source}:${t.title}:${t.due}`;
+    const key = (st) => (st.ms === DAY ? base : `${base}:${st.tag}`); // la clave de las 24 h no cambia para no repetir avisos viejos
+    const reached = STAGES.filter((st) => left < st.ms);
+    const fresh = reached.filter((st) => !warned.has(key(st)));
+    if (!fresh.length) continue;
+    reached.forEach((st) => remember(key(st)));
+    const st = fresh[0]; // el aviso más cercano a la entrega
+    const hours = Math.max(1, Math.round(left / 3600000));
+    const title = st.ms === DAY ? `Vence pronto: ${t.title}` : `Vence en ${hours} h: ${t.title}`;
+    const body = `${t.course} · ${new Date(t.due).toLocaleString('es-MX')}`;
+    notify(title, body, openWindow);
+    if (st.ms !== DAY && speak) speak(`Aviso: ${t.title}, de ${t.course}, vence en ${hours} ${hours === 1 ? 'hora' : 'horas'}.`);
+    phone.trySend(title, body, { priority: st.ms === DAY ? 4 : 5, tags: ['warning'] });
+    whatsapp.trySend(title, body);
   }
 }
 
