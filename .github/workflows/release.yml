@@ -9,6 +9,7 @@ permissions:
 jobs:
   release:
     strategy:
+      fail-fast: false
       matrix:
         os: [windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
@@ -19,11 +20,16 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx electron-builder --publish always
+      - name: Construir y publicar
+        shell: bash
+        run: |
+          # Solo se firma si existen los secretos; un CSC_LINK vacío rompe electron-builder ("not a file").
+          if [ -n "$SIGN_LINK" ]; then export CSC_LINK="$SIGN_LINK" CSC_KEY_PASSWORD="$SIGN_PASSWORD"; fi
+          npx electron-builder --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Opcional: con estos secretos en GitHub (Settings → Secrets → Actions) el instalador sale firmado.
           # Windows: CSC_LINK (certificado .pfx en base64) y CSC_KEY_PASSWORD.
           # Mac: además APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD y APPLE_TEAM_ID.
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          SIGN_LINK: ${{ secrets.CSC_LINK }}
+          SIGN_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
