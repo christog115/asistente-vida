@@ -45,6 +45,21 @@ function spokenSummary(data, fallback) {
   return 'Buenos días. ' + text.replace(/[*_#`]/g, '').slice(0, 700);
 }
 
+// Al encender la PC (primera vez del día, entre las 5:00 y las 12:00) dice el resumen en voz alta
+// sin esperar a la hora fija. Espera hasta 3 minutos al resumen del asistente; si no llega, usa el básico.
+let firstSeen = null;
+function morning(data, speak) {
+  const now = new Date();
+  const today = now.toDateString();
+  if (!data || !speak || store.get('morningSpeech') === false) return;
+  if (now.getHours() < 5 || now.getHours() >= 12 || store.get('morningSpoken') === today) return;
+  const b = data.briefing;
+  if (!firstSeen) firstSeen = Date.now();
+  if (!(b && b.date === today && b.text) && Date.now() - firstSeen < 3 * 60000) return;
+  store.set('morningSpoken', today);
+  speak(spokenSummary(data, dailySummary(data)));
+}
+
 // Se llama cada minuto con los datos más recientes del tablero.
 function tick(data, openWindow, speak) {
   if (!data) return;
@@ -54,7 +69,10 @@ function tick(data, openWindow, speak) {
     lastSlot = slot;
     const summary = dailySummary(data);
     notify('Tu resumen del día', summary, openWindow);
-    if (speak) speak(spokenSummary(data, summary));
+    if (speak) {
+      speak(spokenSummary(data, summary));
+      if (now.getHours() < 12) store.set('morningSpoken', now.toDateString());
+    }
     phone.trySend('Tu resumen del día', summary, { tags: ['calendar'] });
     whatsapp.trySend('Tu resumen del día', summary);
   }
@@ -72,4 +90,4 @@ function tick(data, openWindow, speak) {
   }
 }
 
-module.exports = { tick, dailySummary };
+module.exports = { tick, morning, dailySummary };

@@ -117,6 +117,7 @@ async function renderStatus() {
   $('moodle-url').value = s.moodleUrl;
   $('reminder-times').value = s.reminderTimes.join(', ');
   $('autostart').checked = s.autoStart;
+  $('morning-speech').checked = s.morningSpeech;
   $('sheet-url').value = s.sheetUrl;
   renderMobile(s.mobile);
   hasPhoneTopic = s.phone.hasTopic;
@@ -370,6 +371,7 @@ $('save-reminders').onclick = async () => {
   const times = $('reminder-times').value.split(',').map((x) => x.trim()).filter((x) => /^\d{2}:\d{2}$/.test(x));
   await api.setReminders(times);
   await api.setAutostart($('autostart').checked);
+  await api.setMorningSpeech($('morning-speech').checked);
   $('message').textContent = 'Guardado.';
   renderStatus();
 };
