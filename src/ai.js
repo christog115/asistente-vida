@@ -93,7 +93,7 @@ async function withRetry(fn, tries = 3) {
     try {
       return await fn();
     } catch (err) {
-      if (i >= tries || ![429, 500, 503].includes(err.status)) throw err;
+      if (i >= tries || ![500, 503].includes(err.status)) throw err;
       await sleep(1500 * i);
     }
   }
@@ -118,7 +118,7 @@ async function askGemini(system, messages) {
   for (const [i, model] of models.entries()) {
     try {
       // Sin "pensar" largo contesta mucho más rápido; si el modelo no acepta ese ajuste, se reintenta sin él.
-      const generate = (config) => withRetry(() => withTimeout(ai.models.generateContent({ model, contents, config }), 30000));
+      const generate = (config) => withRetry(() => withTimeout(ai.models.generateContent({ model, contents, config }), 15000));
       const res = await generate({ systemInstruction: system, thinkingConfig: { thinkingBudget: 0 } })
         .catch((err) => {
           if (err.status === 400 && /think/i.test(err.message)) return generate({ systemInstruction: system });
@@ -129,7 +129,7 @@ async function askGemini(system, messages) {
     } catch (err) {
       if (err.status === 404 && !first404) first404 = `${model}: ${googleMessage(err)}`;
       if (err.status === 429 && !first429) first429 = `${model}: ${googleMessage(err)}`;
-      if ((err.status === 404 || err.status === 429) && i < models.length - 1) continue;
+      if ((err.status === 404 || err.status === 429 || err.timeout) && i < models.length - 1) continue;
       if ((err.status === 503 || err.status === 500) && i < models.length - 1) continue;
       if (err.status === 503 || err.status === 500) throw new Error('Gemini está saturado en este momento; intenta de nuevo en unos segundos.');
       if (err.timeout) throw new Error('Gemini tardó demasiado en contestar; intenta de nuevo.');
