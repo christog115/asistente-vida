@@ -112,11 +112,12 @@ async function renderStatus() {
   $('spotify-disconnect').classList.toggle('hidden', s.spotify === 'sin-credenciales');
   $('whatsapp-status').textContent = { conectado: 'Conectado', pausado: 'Pausado', desconectado: 'Sin conectar' }[s.whatsapp];
   renderUpdate(s.update);
-  renderAlarms(s.alarms);
+  renderAlarms(s.alarms); renderStudy(s.study);
   renderApps(s.apps);
   $('moodle-url').value = s.moodleUrl;
   $('reminder-times').value = s.reminderTimes.join(', ');
   $('autostart').checked = s.autoStart;
+  $('morning-speech').checked = s.morningSpeech;
   $('sheet-url').value = s.sheetUrl;
   renderMobile(s.mobile);
   hasPhoneTopic = s.phone.hasTopic;
@@ -300,6 +301,15 @@ function describeRepeat(ms) {
   const min = Math.round(ms / 60000);
   return min % 60 === 0 ? `cada ${min / 60 === 1 ? 'hora' : min / 60 + ' horas'}` : `cada ${min} minutos`;
 }
+function renderStudy(st) {
+  $('study-state').textContent = st && st.active
+    ? `Activo: quedan ${st.minutesLeft} min${st.music ? ' · con música' : ''}.`
+    : 'Apagado.';
+  $('study-start').classList.toggle('hidden', !!(st && st.active));
+  $('study-stop').classList.toggle('hidden', !(st && st.active));
+}
+$('study-start').onclick = () => run(() => api.studyStart(Number($('study-minutes').value)), 'Modo estudio activado.');
+$('study-stop').onclick = () => run(api.studyStop, 'Modo estudio terminado.');
 function renderAlarms(list) {
   const ul = $('alarms');
   ul.replaceChildren();
@@ -363,6 +373,24 @@ function renderUpdate(u) {
 }
 $('auto-update').onchange = (e) => run(() => api.updateSetEnabled(e.target.checked), 'Listo.');
 $('update-check').onclick = async () => { await api.updateCheck(); setTimeout(renderStatus, 1500); };
+$('backup-export').onclick = async () => {
+  try {
+    const file = await api.backupExport($('backup-password').value);
+    $('message').textContent = file ? 'Copia guardada en ' + file : 'Cancelado.';
+  } catch (err) {
+    $('message').textContent = 'Error: ' + cleanError(err);
+  }
+};
+$('backup-import').onclick = async () => {
+  if (!confirm('Restaurar reemplaza la configuración actual con la de la copia. ¿Continuar?')) return;
+  try {
+    const data = await api.backupImport($('backup-password').value);
+    $('message').textContent = data ? 'Copia restaurada.' : 'Cancelado.';
+    renderStatus();
+  } catch (err) {
+    $('message').textContent = 'Error: ' + cleanError(err);
+  }
+};
 $('update-install').onclick = () => api.updateInstall();
 $('moodle-browser').onclick = () => run(api.moodleConnectBrowser, 'Listo.');
 $('moodle-disconnect').onclick = () => run(api.moodleDisconnect, 'Escuela desconectada.');
@@ -370,6 +398,7 @@ $('save-reminders').onclick = async () => {
   const times = $('reminder-times').value.split(',').map((x) => x.trim()).filter((x) => /^\d{2}:\d{2}$/.test(x));
   await api.setReminders(times);
   await api.setAutostart($('autostart').checked);
+  await api.setMorningSpeech($('morning-speech').checked);
   $('message').textContent = 'Guardado.';
   renderStatus();
 };

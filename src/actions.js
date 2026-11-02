@@ -6,9 +6,10 @@ const ai = require('./ai');
 const google = require('./google');
 const alarms = require('./alarms');
 const apps = require('./apps');
+const study = require('./study');
 
 // Solo se gasta una consulta extra si la frase parece una orden.
-const LOOKS_LIKE_COMMAND = /(^|[^a-z])(recuerda(me)?|avisa(me)?|agenda|agendar|crea|crear|programa|pon(me)?|abre|abreme|abrir|inicia|ejecuta|lanza|alarma|temporizador|cancela|borra|que recordatorios|busca(me)?|encuentra(me)?|que me (mando|escribio|envio)|cada\s+\w+\s+(hora|minuto)s?|en\s+\d+\s+(minuto|hora)s?)/;
+const LOOKS_LIKE_COMMAND = /(^|[^a-z])(recuerda(me)?|avisa(me)?|agenda|agendar|crea|crear|programa|pon(me)?|abre|abreme|abrir|inicia|ejecuta|lanza|alarma|temporizador|cancela|borra|que recordatorios|agrega(me)?|anade(me)?|anota(me)?|apunta(me)?|a mis pendientes|a mi lista|busca(me)?|encuentra(me)?|que me (mando|escribio|envio)|modo estudio|a estudiar|voy a estudiar|termine de estudiar|termina el modo|cada\s+\w+\s+(hora|minuto)s?|en\s+\d+\s+(minuto|hora)s?)/;
 const plain = (t) => String(t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
 const SYSTEM = (now) => `Conviertes la orden del usuario en una acción para su asistente. Responde SOLO con un JSON, sin texto extra.
@@ -18,6 +19,9 @@ Acciones:
 {"action":"create_reminder","text":"qué recordar, en infinitivo o frase corta","inMinutes":25,"everyMinutes":null}  // o "at":"ISO con desfase" en vez de inMinutes; everyMinutes si es repetido ("cada hora" = 60)
 {"action":"search_mail","query":"consulta de Gmail, ej. from:profesor matematicas"}  // "qué me mandó...", "busca el correo de..."; usa operadores from:, subject:, after:YYYY/MM/DD, is:unread
 {"action":"search_drive","query":"palabras del nombre del archivo"}  // "busca el archivo de..."
+{"action":"study_start","minutes":120}  // "modo estudio", "voy a estudiar 90 minutos"; minutes null si no dijo cuánto
+{"action":"study_stop"}  // "termina el modo estudio", "ya terminé de estudiar"
+{"action":"create_task","title":"la tarea o pendiente, frase corta","due":"YYYY-MM-DD o null si no dijo fecha"}  // para "agrega a mis pendientes...", "anota que debo..."
 {"action":"list_reminders"}
 {"action":"cancel_reminders"}
 {"action":"open_app","name":"nombre del programa"}
@@ -72,6 +76,21 @@ async function run(a, now) {
       const files = await google.searchDrive(q);
       if (!files.length) return 'No encontré archivos con eso en tu Drive.';
       return `En tu Drive encontré: ${files.slice(0, 3).map((f) => f.name).join(', ')}` + (files.length > 3 ? ` y ${files.length - 3} más.` : '.');
+    }
+    case 'study_start': {
+      const r = await study.start(a.minutes);
+      const h = r.minutes % 60 === 0 ? `${r.minutes / 60} hora${r.minutes === 60 ? '' : 's'}` : `${r.minutes} minutos`;
+      return `Modo estudio por ${h}${r.music ? ', con tu música' : ''}. Te aviso cuándo descansar.`;
+    }
+    case 'study_stop':
+      return study.stop() ? 'Listo, terminé el modo estudio.' : 'El modo estudio no estaba activo.';
+    case 'create_task': {
+      const title = String(a.title || '').trim().slice(0, 200);
+      if (!title) return 'No entendí qué pendiente anotar; dímelo otra vez.';
+      const m = String(a.due || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      const due = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null;
+      await google.createTask({ title, due });
+      return due ? `Listo, anoté "${title}" para el ${due.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}.` : `Listo, anoté "${title}" en tus pendientes.`;
     }
     case 'list_reminders': {
       const l = alarms.list();

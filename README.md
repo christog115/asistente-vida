@@ -6,7 +6,7 @@ App de escritorio (Windows y Mac) que vive en la bandeja del sistema y junta en 
 - **Calendario** de hoy y mañana, **pendientes** de Google Tasks, **correos sin leer** y **archivos recientes** de Drive.
 - **Hoja de pendientes** de Google Sheets (por ejemplo, pendientes del trabajo).
 - **Asistente con IA** (Claude o Gemini): te arma un resumen cada mañana y le puedes preguntar cosas como "¿qué entrego esta semana?".
-- **Recordatorios diarios** como notificación del sistema (por defecto 7:00 y 20:00) y un aviso cuando una tarea vence en menos de 24 horas.
+- **Recordatorios diarios** como notificación del sistema (por defecto 7:00 y 20:00) y dos avisos por cada entrega de la escuela: a menos de 24 horas y a menos de 3 horas (este último también en voz alta si la voz está activa).
 - **Avisos en el celular** (Android o iPhone): los mismos recordatorios llegan a tu teléfono.
 - **Voz tipo Jarvis**: di la palabra clave (o Ctrl+Shift+J) y el asistente te contesta hablando.
 - **Diseños recientes de Canva** en el tablero.
@@ -120,10 +120,13 @@ En **Conexiones** hay dos opciones:
 Di la palabra clave ("kara" o "jarvis", se cambia en Conexiones → Voz) y luego tu orden, o escríbela en el chat:
 
 - "Recuérdame en 25 minutos revisar la ropa" · "Recuérdame cada hora tomar agua" · "Qué recordatorios tengo" · "Cancela mis recordatorios". Te avisa con notificación, en voz alta si la voz está activa, y en el celular.
+- "Agrega a mis pendientes entregar el ensayo el viernes" · "Anótame comprar leche" (se guarda en Google Tasks; la primera vez toca Desconectar y Conectar con Google para dar el permiso de escribir tareas).
 - "Crea un evento el viernes a las 5 de la tarde, dentista" (Google Calendar; si Google te pide permiso, toca Desconectar y Conectar con Google una vez).
 - "Ábreme Spotify" · "Inicia Marvel Rivals" (por Steam). Solo abre una lista fija (Spotify, Marvel Rivals, Steam, Discord, WhatsApp, Canva, YouTube, Gmail, Classroom, Calendario, Drive); para agregar más ve a **Conexiones → Programas que puedo abrir** y escribe el nombre que dirás y un enlace (`steam://rungameid/NUMERO`) o la ruta completa del programa.
 - Los recordatorios pendientes se ven y se borran en **Conexiones → Recordatorios de voz**.
 - "¿Qué me mandó el profesor de matemáticas?" · "Busca el correo de la inscripción" (Gmail) · "Busca el archivo del reporte de física" (Drive). Te dice remitente y asunto (o nombre del archivo) de los más recientes; no lee el contenido de los correos. Usa los permisos que ya diste, no hace falta reconectar.
+- "Modo estudio" · "Voy a estudiar 90 minutos" · "Termina el modo estudio" (también en Conexiones → Modo estudio): silencia la voz de resúmenes y avisos, te avisa cuándo descansar (cada 25 minutos, 5 de descanso) y abre tu música si agregaste un programa llamado `musica de estudio` con el enlace de tu lista de Spotify. Tus recordatorios de voz siguen sonando.
+- Con la voz activada, al encender la PC (entre 5:00 y 12:00) te dice el resumen del día en voz alta una vez, sin esperar a la hora fija. Se apaga en Conexiones → Recordatorios. También puedes preguntar "¿qué tengo hoy?".
 
 La orden la interpreta Claude o Gemini, pero solo con lo que tú dices, nunca con el contenido de tus correos o tareas.
 
@@ -146,6 +149,10 @@ Para publicar una versión nueva (lo hago yo, o tú):
 3. GitHub Actions (`.github/workflows/release.yml`) arma el instalador de Windows y Mac y lo publica en **Releases**.
 
 Requisito: el repositorio debe ser **público** (Settings → General → Danger Zone → Change visibility), porque las apps instaladas descargan sin ninguna clave. El repositorio no contiene claves ni secretos (`credentials/` está ignorado). Ojo: Windows mostrará el aviso de "SmartScreen" porque el instalador no está firmado, y en Mac las actualizaciones automáticas necesitan una app firmada por Apple (cuenta de desarrollador de pago).
+
+## Copia de seguridad
+
+En **Conexiones → Copia de seguridad** pon una contraseña y toca **Guardar copia**: crea un archivo `.avbak` cifrado con tu configuración, recordatorios, programas y claves (para cambiar de PC o por si algo se pierde). **Restaurar copia** lo vuelve a cargar con la misma contraseña; si la olvidas no hay forma de abrirlo. Además la app guarda sola una copia diaria de `config.json` en `backups/` (las últimas 7) y, si el archivo se daña, recupera la más reciente.
 
 ## Seguridad
 
