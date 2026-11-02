@@ -237,4 +237,34 @@ async function createEvent({ title, start, end }) {
   }
 }
 
-module.exports = { status, connect, disconnect, fetchAll, createEvent };
+// Búsquedas por voz (solo lectura): devuelven pocos resultados con remitente/asunto o nombre.
+async function searchMail(query, max = 5) {
+  const auth = authedClient();
+  if (!auth) throw new Error('Conecta Google en Conexiones para buscar en tu correo.');
+  const gmail = google.gmail({ version: 'v1', auth });
+  const list = await gmail.users.messages.list({ userId: 'me', q: String(query).slice(0, 200), maxResults: max });
+  const msgs = list.data.messages || [];
+  const items = await Promise.all(msgs.map(async ({ id }) => {
+    const m = await gmail.users.messages.get({ userId: 'me', id, format: 'metadata', metadataHeaders: ['From', 'Subject'] });
+    const h = Object.fromEntries(m.data.payload.headers.map((x) => [x.name, x.value]));
+    return { from: String(h.From || '').replace(/<.*>/, '').replace(/"/g, '').trim() || h.From, subject: h.Subject || '(sin asunto)' };
+  }));
+  return { total: list.data.resultSizeEstimate || items.length, items };
+}
+
+const driveEscape = (t) => String(t).replace(/[\\']/g, ' ').trim();
+async function searchDrive(query, max = 5) {
+  const auth = authedClient();
+  if (!auth) throw new Error('Conecta Google en Conexiones para buscar en tu Drive.');
+  const drive = google.drive({ version: 'v3', auth });
+  const terms = String(query).split(/\s+/).map(driveEscape).filter(Boolean).slice(0, 6);
+  if (!terms.length) return [];
+  const find = async (q) => (await drive.files.list({ q: `${q} and trashed = false`, pageSize: max, fields: 'files(name,webViewLink)', orderBy: 'viewedByMeTime desc' })).data.files || [];
+  let files = await find(terms.map((t) => `name contains '${t}'`).join(' and '));
+  if (!files.length) {
+    try { files = await find(terms.map((t) => `fullText contains '${t}'`).join(' and ')); } catch { /* sin permiso de contenido */ }
+  }
+  return files.map((f) => ({ name: f.name, url: f.webViewLink }));
+}
+
+module.exports = { status, connect, disconnect, fetchAll, createEvent, searchMail, searchDrive };
