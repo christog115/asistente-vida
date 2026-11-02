@@ -56,6 +56,7 @@ contextBridge.exposeInMainWorld('asistente', {
   mobileStartPairing: () => ipcRenderer.invoke('mobile-start-pairing'),
   mobileRevoke: (id) => ipcRenderer.invoke('mobile-revoke', id),
   setReminders: (times) => ipcRenderer.invoke('set-reminders', times),
+  setMorningSpeech: (on) => ipcRenderer.invoke('set-morning-speech', on),
   setAutostart: (on) => ipcRenderer.invoke('set-autostart', on),
   onData: (cb) => ipcRenderer.on('data', (_e, data) => cb(data))
 });

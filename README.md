@@ -123,6 +123,7 @@ Di la palabra clave ("kara" o "jarvis", se cambia en Conexiones → Voz) y luego
 - "Crea un evento el viernes a las 5 de la tarde, dentista" (Google Calendar; si Google te pide permiso, toca Desconectar y Conectar con Google una vez).
 - "Ábreme Spotify" · "Inicia Marvel Rivals" (por Steam). Solo abre una lista fija (Spotify, Marvel Rivals, Steam, Discord, WhatsApp, Canva, YouTube, Gmail, Classroom, Calendario, Drive); para agregar más ve a **Conexiones → Programas que puedo abrir** y escribe el nombre que dirás y un enlace (`steam://rungameid/NUMERO`) o la ruta completa del programa.
 - Los recordatorios pendientes se ven y se borran en **Conexiones → Recordatorios de voz**.
+- Con la voz activada, al encender la PC (entre 5:00 y 12:00) te dice el resumen del día en voz alta una vez, sin esperar a la hora fija. Se apaga en Conexiones → Recordatorios. También puedes preguntar "¿qué tengo hoy?".
 
 La orden la interpreta Claude o Gemini, pero solo con lo que tú dices, nunca con el contenido de tus correos o tareas.
 

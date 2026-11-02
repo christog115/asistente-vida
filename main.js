@@ -149,6 +149,7 @@ function statuses() {
     alarms: alarms.list(),
     moodleUrl: store.get('moodle').url,
     reminderTimes: store.get('reminderTimes'),
+    morningSpeech: store.get('morningSpeech') !== false,
     autoStart: app.getLoginItemSettings(loginItem()).openAtLogin,
     sheetUrl: store.get('sheetUrl') || '',
     ai: ai.status(),
@@ -244,6 +245,7 @@ ipcMain.handle('backup-import', async (_e, password) => {
   return refresh();
 });
 ipcMain.handle('set-reminders', (_e, times) => store.set('reminderTimes', times));
+ipcMain.handle('set-morning-speech', (_e, on) => store.set('morningSpeech', !!on));
 ipcMain.handle('set-autostart', (_e, on) => {
   app.setLoginItemSettings(loginItem(on));
 });
@@ -284,9 +286,14 @@ app.whenReady().then(() => {
       whatsapp.trySend('Recordatorio', a.text);
     }
   }, 15 * 1000);
-  setInterval(() => reminders.tick(latest, showWindow, (text) => {
+  const speakOut = (text) => {
     if (win && voice.status().enabled) win.webContents.send('voice-speak', text);
-  }), 60 * 1000);
+  };
+  setInterval(() => {
+    reminders.tick(latest, showWindow, speakOut);
+    // Solo se dice si la voz está activada; si no, se espera al siguiente minuto.
+    if (voice.status().enabled) reminders.morning(latest, speakOut);
+  }, 60 * 1000);
 });
 
 app.on('activate', showWindow);
