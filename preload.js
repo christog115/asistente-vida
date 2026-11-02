@@ -25,6 +25,8 @@ contextBridge.exposeInMainWorld('asistente', {
   updateInstall: () => ipcRenderer.invoke('update-install'),
   studyStart: (minutes) => ipcRenderer.invoke('study-start', minutes),
   studyStop: () => ipcRenderer.invoke('study-stop'),
+  backupExport: (password) => ipcRenderer.invoke('backup-export', password),
+  backupImport: (password) => ipcRenderer.invoke('backup-import', password),
   appsAdd: (name, target) => ipcRenderer.invoke('apps-add', name, target),
   appsRemove: (name) => ipcRenderer.invoke('apps-remove', name),
   alarmsRemove: (id) => ipcRenderer.invoke('alarms-remove', id),
@@ -56,6 +58,7 @@ contextBridge.exposeInMainWorld('asistente', {
   mobileStartPairing: () => ipcRenderer.invoke('mobile-start-pairing'),
   mobileRevoke: (id) => ipcRenderer.invoke('mobile-revoke', id),
   setReminders: (times) => ipcRenderer.invoke('set-reminders', times),
+  setMorningSpeech: (on) => ipcRenderer.invoke('set-morning-speech', on),
   setAutostart: (on) => ipcRenderer.invoke('set-autostart', on),
   onData: (cb) => ipcRenderer.on('data', (_e, data) => cb(data))
 });

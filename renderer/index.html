@@ -229,6 +229,7 @@
         <input id="reminder-times" placeholder="07:00, 20:00">
       </label>
       <label class="row"><input id="autostart" type="checkbox"> Iniciar con el sistema</label>
+      <label class="row"><input id="morning-speech" type="checkbox"> Decir el resumen en voz alta al encender la PC (con la voz activada)</label>
       <button id="save-reminders">Guardar</button>
     </section>
 
@@ -266,6 +267,13 @@
       <p>Versión <strong id="update-version"></strong> · <span id="update-state"></span></p>
       <button id="update-check" class="ghost">Buscar ahora</button>
       <button id="update-install" class="hidden">Reiniciar para actualizar</button>
+    </section>
+    <section class="card">
+      <h2>Copia de seguridad</h2>
+      <p class="muted">Guarda toda tu configuración, recordatorios y claves en un archivo cifrado con una contraseña tuya, para recuperarla en otra PC o si algo se pierde. Además la app guarda sola una copia diaria local.</p>
+      <input id="backup-password" type="password" placeholder="Contraseña de la copia (mínimo 6)" autocomplete="off">
+      <button id="backup-export">Guardar copia</button>
+      <button id="backup-import" class="ghost">Restaurar copia</button>
     </section>
     <p id="message" class="muted"></p>
   </main>
