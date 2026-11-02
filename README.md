@@ -6,7 +6,7 @@ App de escritorio (Windows y Mac) que vive en la bandeja del sistema y junta en 
 - **Calendario** de hoy y mañana, **pendientes** de Google Tasks, **correos sin leer** y **archivos recientes** de Drive.
 - **Hoja de pendientes** de Google Sheets (por ejemplo, pendientes del trabajo).
 - **Asistente con IA** (Claude o Gemini): te arma un resumen cada mañana y le puedes preguntar cosas como "¿qué entrego esta semana?".
-- **Recordatorios diarios** como notificación del sistema (por defecto 7:00 y 20:00) y un aviso cuando una tarea vence en menos de 24 horas.
+- **Recordatorios diarios** como notificación del sistema (por defecto 7:00 y 20:00) y dos avisos por cada entrega de la escuela: a menos de 24 horas y a menos de 3 horas (este último también en voz alta si la voz está activa).
 - **Avisos en el celular** (Android o iPhone): los mismos recordatorios llegan a tu teléfono.
 - **Voz tipo Jarvis**: di la palabra clave (o Ctrl+Shift+J) y el asistente te contesta hablando.
 - **Diseños recientes de Canva** en el tablero.
