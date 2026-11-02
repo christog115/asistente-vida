@@ -123,6 +123,7 @@ Di la palabra clave ("kara" o "jarvis", se cambia en Conexiones → Voz) y luego
 - "Crea un evento el viernes a las 5 de la tarde, dentista" (Google Calendar; si Google te pide permiso, toca Desconectar y Conectar con Google una vez).
 - "Ábreme Spotify" · "Inicia Marvel Rivals" (por Steam). Solo abre una lista fija (Spotify, Marvel Rivals, Steam, Discord, WhatsApp, Canva, YouTube, Gmail, Classroom, Calendario, Drive); para agregar más ve a **Conexiones → Programas que puedo abrir** y escribe el nombre que dirás y un enlace (`steam://rungameid/NUMERO`) o la ruta completa del programa.
 - Los recordatorios pendientes se ven y se borran en **Conexiones → Recordatorios de voz**.
+- "Modo estudio" · "Voy a estudiar 90 minutos" · "Termina el modo estudio" (también en Conexiones → Modo estudio): silencia la voz de resúmenes y avisos, te avisa cuándo descansar (cada 25 minutos, 5 de descanso) y abre tu música si agregaste un programa llamado `musica de estudio` con el enlace de tu lista de Spotify. Tus recordatorios de voz siguen sonando.
 
 La orden la interpreta Claude o Gemini, pero solo con lo que tú dices, nunca con el contenido de tus correos o tareas.
 

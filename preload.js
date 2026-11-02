@@ -23,6 +23,8 @@ contextBridge.exposeInMainWorld('asistente', {
   updateSetEnabled: (on) => ipcRenderer.invoke('update-set-enabled', on),
   updateCheck: () => ipcRenderer.invoke('update-check'),
   updateInstall: () => ipcRenderer.invoke('update-install'),
+  studyStart: (minutes) => ipcRenderer.invoke('study-start', minutes),
+  studyStop: () => ipcRenderer.invoke('study-stop'),
   appsAdd: (name, target) => ipcRenderer.invoke('apps-add', name, target),
   appsRemove: (name) => ipcRenderer.invoke('apps-remove', name),
   alarmsRemove: (id) => ipcRenderer.invoke('alarms-remove', id),

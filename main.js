@@ -17,6 +17,7 @@ const piper = require('./src/piper');
 const actions = require('./src/actions');
 const alarms = require('./src/alarms');
 const apps = require('./src/apps');
+const study = require('./src/study');
 const mobile = require('./src/mobile');
 const store = require('./src/store');
 
@@ -146,6 +147,7 @@ function statuses() {
     update: updater.status(),
     apps: apps.list(),
     alarms: alarms.list(),
+    study: study.status(),
     moodleUrl: store.get('moodle').url,
     reminderTimes: store.get('reminderTimes'),
     autoStart: app.getLoginItemSettings(loginItem()).openAtLogin,
@@ -227,6 +229,8 @@ ipcMain.handle('mobile-revoke', (_e, id) => { mobile.revoke(id); return mobile.s
 ipcMain.handle('apps-add', (_e, name, target) => apps.add(name, target));
 ipcMain.handle('apps-remove', (_e, name) => apps.remove(name));
 ipcMain.handle('alarms-remove', (_e, id) => alarms.remove(id));
+ipcMain.handle('study-start', (_e, minutes) => study.start(minutes));
+ipcMain.handle('study-stop', () => study.stop());
 ipcMain.handle('alarms-clear', () => alarms.clear());
 ipcMain.handle('set-reminders', (_e, times) => store.set('reminderTimes', times));
 ipcMain.handle('set-autostart', (_e, on) => {

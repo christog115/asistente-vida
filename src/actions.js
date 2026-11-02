@@ -6,9 +6,10 @@ const ai = require('./ai');
 const google = require('./google');
 const alarms = require('./alarms');
 const apps = require('./apps');
+const study = require('./study');
 
 // Solo se gasta una consulta extra si la frase parece una orden.
-const LOOKS_LIKE_COMMAND = /(^|[^a-z])(recuerda(me)?|avisa(me)?|agenda|agendar|crea|crear|programa|pon(me)?|abre|abreme|abrir|inicia|ejecuta|lanza|alarma|temporizador|cancela|borra|que recordatorios|cada\s+\w+\s+(hora|minuto)s?|en\s+\d+\s+(minuto|hora)s?)/;
+const LOOKS_LIKE_COMMAND = /(^|[^a-z])(recuerda(me)?|avisa(me)?|agenda|agendar|crea|crear|programa|pon(me)?|abre|abreme|abrir|inicia|ejecuta|lanza|alarma|temporizador|cancela|borra|que recordatorios|modo estudio|a estudiar|voy a estudiar|termine de estudiar|termina el modo|cada\s+\w+\s+(hora|minuto)s?|en\s+\d+\s+(minuto|hora)s?)/;
 const plain = (t) => String(t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
 const SYSTEM = (now) => `Conviertes la orden del usuario en una acción para su asistente. Responde SOLO con un JSON, sin texto extra.
@@ -16,6 +17,8 @@ Ahora es ${now.toString()} (${now.toISOString()} en UTC). Usa SIEMPRE la zona ho
 Acciones:
 {"action":"create_event","title":"...","start":"ISO con desfase","durationMinutes":60}
 {"action":"create_reminder","text":"qué recordar, en infinitivo o frase corta","inMinutes":25,"everyMinutes":null}  // o "at":"ISO con desfase" en vez de inMinutes; everyMinutes si es repetido ("cada hora" = 60)
+{"action":"study_start","minutes":120}  // "modo estudio", "voy a estudiar 90 minutos"; minutes null si no dijo cuánto
+{"action":"study_stop"}  // "termina el modo estudio", "ya terminé de estudiar"
 {"action":"list_reminders"}
 {"action":"cancel_reminders"}
 {"action":"open_app","name":"nombre del programa"}
@@ -55,6 +58,13 @@ async function run(a, now) {
         ? `Listo, te lo recuerdo en ${span(alarm.at - now.getTime())}.`
         : `Listo, te recuerdo "${alarm.text}" el ${when(new Date(alarm.at))}${rep}.`;
     }
+    case 'study_start': {
+      const r = await study.start(a.minutes);
+      const h = r.minutes % 60 === 0 ? `${r.minutes / 60} hora${r.minutes === 60 ? '' : 's'}` : `${r.minutes} minutos`;
+      return `Modo estudio por ${h}${r.music ? ', con tu música' : ''}. Te aviso cuándo descansar.`;
+    }
+    case 'study_stop':
+      return study.stop() ? 'Listo, terminé el modo estudio.' : 'El modo estudio no estaba activo.';
     case 'list_reminders': {
       const l = alarms.list();
       return l.length ? 'Tienes: ' + l.map((x) => `${x.text}, ${when(new Date(x.at))}`).join('; ') + '.' : 'No tienes recordatorios pendientes.';
