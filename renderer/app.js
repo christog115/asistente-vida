@@ -112,7 +112,7 @@ async function renderStatus() {
   $('spotify-disconnect').classList.toggle('hidden', s.spotify === 'sin-credenciales');
   $('whatsapp-status').textContent = { conectado: 'Conectado', pausado: 'Pausado', desconectado: 'Sin conectar' }[s.whatsapp];
   renderUpdate(s.update);
-  renderAlarms(s.alarms);
+  renderAlarms(s.alarms); renderStudy(s.study);
   renderApps(s.apps);
   $('moodle-url').value = s.moodleUrl;
   $('reminder-times').value = s.reminderTimes.join(', ');
@@ -301,6 +301,15 @@ function describeRepeat(ms) {
   const min = Math.round(ms / 60000);
   return min % 60 === 0 ? `cada ${min / 60 === 1 ? 'hora' : min / 60 + ' horas'}` : `cada ${min} minutos`;
 }
+function renderStudy(st) {
+  $('study-state').textContent = st && st.active
+    ? `Activo: quedan ${st.minutesLeft} min${st.music ? ' · con música' : ''}.`
+    : 'Apagado.';
+  $('study-start').classList.toggle('hidden', !!(st && st.active));
+  $('study-stop').classList.toggle('hidden', !(st && st.active));
+}
+$('study-start').onclick = () => run(() => api.studyStart(Number($('study-minutes').value)), 'Modo estudio activado.');
+$('study-stop').onclick = () => run(api.studyStop, 'Modo estudio terminado.');
 function renderAlarms(list) {
   const ul = $('alarms');
   ul.replaceChildren();

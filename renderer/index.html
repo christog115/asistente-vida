@@ -234,6 +234,15 @@
     </section>
 
     <section class="card">
+      <h2>Modo estudio</h2>
+      <p class="muted">Silencia la voz de resúmenes y avisos, abre tu música (agrega abajo un programa llamado "musica de estudio" con el enlace de tu lista) y te avisa cuándo descansar. También: "kara, modo estudio" o "termina el modo estudio".</p>
+      <p id="study-state"></p>
+      <label>Minutos <input id="study-minutes" type="number" min="5" max="720" value="120"></label>
+      <button id="study-start">Activar</button>
+      <button id="study-stop" class="ghost hidden">Terminar</button>
+    </section>
+
+    <section class="card">
       <h2>Recordatorios de voz</h2>
       <p class="muted">Los que le pides al asistente ("recuérdame en 25 minutos…").</p>
       <ul id="alarms" class="list"></ul>
