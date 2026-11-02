@@ -146,6 +146,10 @@ Para publicar una versión nueva (lo hago yo, o tú):
 
 Requisito: el repositorio debe ser **público** (Settings → General → Danger Zone → Change visibility), porque las apps instaladas descargan sin ninguna clave. El repositorio no contiene claves ni secretos (`credentials/` está ignorado). Ojo: Windows mostrará el aviso de "SmartScreen" porque el instalador no está firmado, y en Mac las actualizaciones automáticas necesitan una app firmada por Apple (cuenta de desarrollador de pago).
 
+## Copia de seguridad
+
+En **Conexiones → Copia de seguridad** pon una contraseña y toca **Guardar copia**: crea un archivo `.avbak` cifrado con tu configuración, recordatorios, programas y claves (para cambiar de PC o por si algo se pierde). **Restaurar copia** lo vuelve a cargar con la misma contraseña; si la olvidas no hay forma de abrirlo. Además la app guarda sola una copia diaria de `config.json` en `backups/` (las últimas 7) y, si el archivo se daña, recupera la más reciente.
+
 ## Seguridad
 
 - Ninguna contraseña se guarda. Los tokens se cifran con DPAPI (Windows) o el Llavero (Mac).

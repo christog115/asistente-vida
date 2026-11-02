@@ -1,6 +1,6 @@
 // Proceso principal: ventana del tablero, ícono en la bandeja, arranque con
 // el sistema, actualización periódica y recordatorios.
-const { app, BrowserWindow, Tray, Menu, ipcMain, shell, nativeImage, session, globalShortcut, Notification } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, shell, nativeImage, session, globalShortcut, Notification, dialog } = require('electron');
 const path = require('path');
 const google = require('./src/google');
 const moodle = require('./src/moodle');
@@ -19,6 +19,7 @@ const alarms = require('./src/alarms');
 const apps = require('./src/apps');
 const mobile = require('./src/mobile');
 const store = require('./src/store');
+const backup = require('./src/backup');
 
 const REFRESH_MS = 15 * 60 * 1000;
 
@@ -228,6 +229,20 @@ ipcMain.handle('apps-add', (_e, name, target) => apps.add(name, target));
 ipcMain.handle('apps-remove', (_e, name) => apps.remove(name));
 ipcMain.handle('alarms-remove', (_e, id) => alarms.remove(id));
 ipcMain.handle('alarms-clear', () => alarms.clear());
+ipcMain.handle('backup-export', async (_e, password) => {
+  backup.checkPassword(password); // antes de abrir el diálogo
+  const r = await dialog.showSaveDialog(win, { title: 'Guardar copia de seguridad', defaultPath: 'asistente-vida.avbak', filters: [{ name: 'Copia del asistente', extensions: ['avbak'] }] });
+  if (r.canceled || !r.filePath) return null;
+  backup.exportTo(r.filePath, password);
+  return r.filePath;
+});
+ipcMain.handle('backup-import', async (_e, password) => {
+  backup.checkPassword(password);
+  const r = await dialog.showOpenDialog(win, { title: 'Abrir copia de seguridad', properties: ['openFile'], filters: [{ name: 'Copia del asistente', extensions: ['avbak'] }] });
+  if (r.canceled || !r.filePaths[0]) return null;
+  backup.importFrom(r.filePaths[0], password);
+  return refresh();
+});
 ipcMain.handle('set-reminders', (_e, times) => store.set('reminderTimes', times));
 ipcMain.handle('set-autostart', (_e, on) => {
   app.setLoginItemSettings(loginItem(on));
@@ -241,6 +256,9 @@ app.whenReady().then(() => {
     store.set('autoStartInit', true);
   }
   voice.serve();
+  // Copia diaria local de la configuración (se conservan 7); protege contra un archivo dañado.
+  store.snapshot();
+  setInterval(() => store.snapshot(), 6 * 60 * 60 * 1000);
   updater.init();
   // El micrófono solo se permite a la ventana del tablero.
   session.defaultSession.setPermissionRequestHandler((wc, permission, cb) => {
