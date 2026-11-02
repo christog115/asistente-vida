@@ -7,9 +7,10 @@ const google = require('./google');
 const alarms = require('./alarms');
 const apps = require('./apps');
 const study = require('./study');
+const spotify = require('./spotify');
 
 // Solo se gasta una consulta extra si la frase parece una orden.
-const LOOKS_LIKE_COMMAND = /(^|[^a-z])(recuerda(me)?|avisa(me)?|agenda|agendar|crea|crear|programa|pon(me)?|abre|abreme|abrir|inicia|ejecuta|lanza|alarma|temporizador|cancela|borra|que recordatorios|agrega(me)?|anade(me)?|anota(me)?|apunta(me)?|a mis pendientes|a mi lista|busca(me)?|encuentra(me)?|que me (mando|escribio|envio)|modo estudio|a estudiar|voy a estudiar|termine de estudiar|termina el modo|cada\s+\w+\s+(hora|minuto)s?|en\s+\d+\s+(minuto|hora)s?)/;
+const LOOKS_LIKE_COMMAND = /(^|[^a-z])(recuerda(me)?|avisa(me)?|agenda|agendar|crea|crear|programa|pon(me)?|abre|abreme|abrir|inicia|ejecuta|lanza|alarma|temporizador|cancela|borra|que recordatorios|pausa(r)?|reanuda(r)?|siguiente cancion|cancion siguiente|cancion anterior|salta|agrega(me)?|anade(me)?|anota(me)?|apunta(me)?|a mis pendientes|a mi lista|busca(me)?|encuentra(me)?|que me (mando|escribio|envio)|modo estudio|a estudiar|voy a estudiar|termine de estudiar|termina el modo|cada\s+\w+\s+(hora|minuto)s?|en\s+\d+\s+(minuto|hora)s?)/;
 const plain = (t) => String(t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
 const SYSTEM = (now) => `Conviertes la orden del usuario en una acción para su asistente. Responde SOLO con un JSON, sin texto extra.
@@ -22,6 +23,7 @@ Acciones:
 {"action":"study_start","minutes":120}  // "modo estudio", "voy a estudiar 90 minutos"; minutes null si no dijo cuánto
 {"action":"study_stop"}  // "termina el modo estudio", "ya terminé de estudiar"
 {"action":"create_task","title":"la tarea o pendiente, frase corta","due":"YYYY-MM-DD o null si no dijo fecha"}  // para "agrega a mis pendientes...", "anota que debo..."
+{"action":"music","command":"pause|resume|next|previous"}  // "pausa la música", "sigue/reanuda", "siguiente canción", "canción anterior"
 {"action":"list_reminders"}
 {"action":"cancel_reminders"}
 {"action":"open_app","name":"nombre del programa"}
@@ -91,6 +93,12 @@ async function run(a, now) {
       const due = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null;
       await google.createTask({ title, due });
       return due ? `Listo, anoté "${title}" para el ${due.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}.` : `Listo, anoté "${title}" en tus pendientes.`;
+    }
+    case 'music': {
+      const words = { pause: 'Pausé la música.', resume: 'Seguimos con la música.', next: 'Siguiente canción.', previous: 'Canción anterior.' };
+      if (!words[a.command]) return null;
+      await spotify.control(a.command);
+      return words[a.command];
     }
     case 'list_reminders': {
       const l = alarms.list();

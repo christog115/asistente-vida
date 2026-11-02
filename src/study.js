@@ -4,6 +4,7 @@
 const { Notification } = require('electron');
 const store = require('./store');
 const apps = require('./apps');
+const spotify = require('./spotify');
 
 const MUSIC_APP = 'musica de estudio';
 const DEFAULT_MINUTES = 120;
@@ -28,14 +29,32 @@ async function start(minutes, now = Date.now()) {
   const n = Math.min(MAX_MINUTES, Math.max(5, Math.round(Number(minutes) || DEFAULT_MINUTES)));
   store.set('study', { until: now + n * 60000, nextBreak: now + BREAK_EVERY_MIN * 60000 });
   let music = false;
-  if (apps.find(MUSIC_APP)) {
-    try { music = !!(await apps.open(MUSIC_APP)); } catch { /* si no abre, el modo estudio sigue */ }
+  const mine = apps.find(MUSIC_APP);
+  if (mine) {
+    // Con Spotify Premium conectado la lista suena sola; si no, solo se abre el enlace.
+    const m = /open\.spotify\.com\/(playlist|album)\/([A-Za-z0-9]+)/.exec(mine.target);
+    if (m && spotify.canControl()) {
+      try {
+        await spotify.control('play', { contextUri: `spotify:${m[1]}:${m[2]}` });
+        store.set('study', { ...store.get('study'), playing: true });
+        music = true;
+      } catch { /* se cae al enlace normal */ }
+    }
+    if (!music) {
+      try { music = !!(await apps.open(MUSIC_APP)); } catch { /* si no abre, el modo estudio sigue */ }
+    }
   }
   return { minutes: n, music };
 }
 
+// Si el modo estudio puso la música, al terminar la pausa (sin molestar si ya no se puede).
+function pauseIfPlaying(s) {
+  if (s && s.playing) spotify.control('pause').catch(() => {});
+}
+
 function stop() {
   const was = active();
+  pauseIfPlaying(read());
   store.set('study', null);
   return was;
 }
@@ -49,6 +68,7 @@ function tick(speak, now = Date.now()) {
     if (speak) speak(`${title}. ${body}`);
   };
   if (s.until <= now) {
+    pauseIfPlaying(s);
     store.set('study', null);
     say('Terminó el modo estudio', 'Buen trabajo.');
   } else if (s.nextBreak <= now) {

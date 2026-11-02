@@ -1,6 +1,7 @@
 // Conexión con Spotify (Web API): qué suena ahora y lo último que escuchaste.
 // Spotify exige tu propia app (gratis, ver README). Usa OAuth con PKCE, así que
-// solo se necesita el Client ID (no hay secreto) y el permiso es de solo lectura.
+// solo se necesita el Client ID (no hay secreto). Además de leer lo que suena, puede
+// pausar, seguir y poner tu lista de estudio (requiere Spotify Premium).
 const { shell } = require('electron');
 const crypto = require('crypto');
 const http = require('http');
@@ -11,7 +12,7 @@ const AUTH_URL = 'https://accounts.spotify.com/authorize';
 const TOKEN_URL = 'https://accounts.spotify.com/api/token';
 const PORT = 47824;
 const REDIRECT = `http://127.0.0.1:${PORT}/spotify`;
-const SCOPE = 'user-read-currently-playing user-read-recently-played';
+const SCOPE = 'user-read-currently-playing user-read-recently-played user-modify-playback-state user-read-playback-state';
 
 const b64url = (buf) => buf.toString('base64url');
 
@@ -39,6 +40,7 @@ async function tokenRequest(params, previous) {
   return {
     access_token: body.access_token,
     refresh_token: body.refresh_token || (previous && previous.refresh_token),
+    scope: body.scope || (previous && previous.scope) || '',
     expiresAt: Date.now() + (body.expires_in || 3600) * 1000
   };
 }
@@ -139,4 +141,53 @@ async function fetchAll() {
   };
 }
 
-module.exports = { status, setApp, connect, disconnect, fetchAll };
+// ¿La conexión actual ya incluye el permiso de controlar la reproducción?
+function canControl() {
+  const t = store.getSecret('spotify');
+  return !!(t && /user-modify-playback-state/.test(t.scope || ''));
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function pickDevice(token) {
+  const body = await get(token, '/me/player/devices');
+  const devices = (body && body.devices) || [];
+  return devices.find((d) => d.is_active) || devices[0] || null;
+}
+
+// command: play (con contextUri, ej. spotify:playlist:ID) | pause | resume | next | previous.
+async function control(command, { contextUri } = {}) {
+  const token = await accessToken();
+  if (!token) throw new Error('Conecta Spotify en Conexiones.');
+  if (!canControl()) throw new Error('Para controlar Spotify toca Desconectar y luego Conectar Spotify, para dar el permiso nuevo.');
+  let device = await pickDevice(token);
+  if (!device && command === 'play') {
+    await shell.openExternal('spotify:'); // abre la app y se espera a que aparezca como dispositivo
+    for (let i = 0; i < 6 && !device; i++) { await sleep(2000); device = await pickDevice(token); }
+  }
+  if (!device) throw new Error('No encuentro Spotify abierto; ábrelo en tu PC o celular.');
+  const q = `?device_id=${encodeURIComponent(device.id)}`;
+  const calls = {
+    play: ['PUT', '/me/player/play' + q, { context_uri: contextUri }],
+    resume: ['PUT', '/me/player/play' + q],
+    pause: ['PUT', '/me/player/pause' + q],
+    next: ['POST', '/me/player/next' + q],
+    previous: ['POST', '/me/player/previous' + q]
+  };
+  const call = calls[command];
+  if (!call || (command === 'play' && !contextUri)) throw new Error('Esa orden de Spotify no existe.');
+  const res = await fetch(API + call[1], {
+    method: call[0],
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: call[2] ? JSON.stringify(call[2]) : undefined
+  });
+  if (res.ok) return;
+  const body = await res.json().catch(() => ({}));
+  const reason = body.error && body.error.reason;
+  if (reason === 'PREMIUM_REQUIRED') throw new Error('Spotify solo deja controlar la reproducción con Premium.');
+  if (res.status === 401) { store.setSecret('spotify', null); throw new Error('Spotify pidió volver a conectar.'); }
+  if (res.status === 403) throw new Error('Spotify no me dejó controlar la reproducción: toca Desconectar y Conectar Spotify.');
+  throw new Error((body.error && body.error.message) || `Spotify respondió ${res.status}.`);
+}
+
+module.exports = { status, setApp, connect, disconnect, fetchAll, canControl, control };
