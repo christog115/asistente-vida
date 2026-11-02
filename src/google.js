@@ -12,7 +12,7 @@ const store = require('./store');
 const SCOPES = [
   'https://www.googleapis.com/auth/gmail.readonly',
   'https://www.googleapis.com/auth/calendar.events',
-  'https://www.googleapis.com/auth/tasks.readonly',
+  'https://www.googleapis.com/auth/tasks',
   'https://www.googleapis.com/auth/drive.metadata.readonly',
   'https://www.googleapis.com/auth/classroom.courses.readonly',
   'https://www.googleapis.com/auth/classroom.coursework.me.readonly',
@@ -237,4 +237,22 @@ async function createEvent({ title, start, end }) {
   }
 }
 
-module.exports = { status, connect, disconnect, fetchAll, createEvent };
+// Agrega una tarea a la lista principal de Google Tasks. due: fecha JS opcional (Google solo guarda el día).
+async function createTask({ title, due }) {
+  const auth = authedClient();
+  if (!auth) throw new Error('Conecta Google en Conexiones para guardar tareas.');
+  const api = google.tasks({ version: 'v1', auth });
+  const pad = (n) => String(n).padStart(2, '0');
+  const requestBody = { title };
+  if (due) requestBody.due = `${due.getFullYear()}-${pad(due.getMonth() + 1)}-${pad(due.getDate())}T00:00:00.000Z`;
+  try {
+    await api.tasks.insert({ tasklist: '@default', requestBody });
+  } catch (err) {
+    if (err.code === 403 || /insufficient/i.test(err.message)) {
+      throw new Error('Google no me deja guardar tareas todavía: en Conexiones toca Desconectar y luego Conectar con Google para dar el permiso nuevo.');
+    }
+    throw err;
+  }
+}
+
+module.exports = { status, connect, disconnect, fetchAll, createEvent, createTask };
