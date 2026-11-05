@@ -59,7 +59,23 @@ function context(data) {
   });
 }
 
+// Las dos APIs rechazan (400) mensajes vacíos, turnos seguidos del mismo lado o un primer turno del asistente:
+// se limpia el historial antes de enviarlo para que un turno malo no arruine todas las preguntas siguientes.
+function cleanMessages(messages) {
+  const out = [];
+  for (const m of messages) {
+    const content = String(m.content || '').trim();
+    if (!content) continue;
+    const role = m.role === 'assistant' ? 'assistant' : 'user';
+    if (!out.length && role === 'assistant') continue;
+    if (out.length && out[out.length - 1].role === role) out[out.length - 1].content += '\n' + content;
+    else out.push({ role, content });
+  }
+  return out;
+}
+
 async function askClaude(system, messages) {
+  messages = cleanMessages(messages);
   const key = store.getSecret('anthropicKey');
   if (!key) throw new Error('Falta la clave de Claude (Conexiones → Asistente).');
   const client = new Anthropic({ apiKey: key });
@@ -110,7 +126,7 @@ async function askGemini(system, messages) {
   const key = store.getSecret('geminiKey');
   if (!key) throw new Error('Falta la clave de Gemini (Conexiones → Asistente).');
   const ai = new GoogleGenAI({ apiKey: key });
-  const contents = messages.map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] }));
+  const contents = cleanMessages(messages).map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] }));
   // Primero el que funcionó la última vez; si Google retira modelos, se prueban los demás.
   const models = [...new Set([store.get('geminiModel'), store.get('geminiModelOk'), ...GEMINI_MODELS].filter(Boolean))];
   let first404 = null;
@@ -121,22 +137,27 @@ async function askGemini(system, messages) {
       const generate = (config) => withRetry(() => withTimeout(ai.models.generateContent({ model, contents, config }), 15000));
       const res = await generate({ systemInstruction: system, thinkingConfig: { thinkingBudget: 0 } })
         .catch((err) => {
-          if (err.status === 400 && /think/i.test(err.message)) return generate({ systemInstruction: system });
+          // Algunos modelos no aceptan apagar el "pensar" y contestan 400 sin decir por qué.
+          if (err.status === 400 && !/API_KEY_INVALID/.test(err.message)) return generate({ systemInstruction: system });
           throw err;
         });
+      const text = (res.text || '').trim();
+      if (!text) throw Object.assign(new Error('vacía'), { empty: true });
       if (store.get('geminiModelOk') !== model) store.set('geminiModelOk', model);
-      return (res.text || '').trim();
+      return text;
     } catch (err) {
       if (err.status === 404 && !first404) first404 = `${model}: ${googleMessage(err)}`;
       if (err.status === 429 && !first429) first429 = `${model}: ${googleMessage(err)}`;
       if ((err.status === 404 || err.status === 429 || err.timeout) && i < models.length - 1) continue;
-      if ((err.status === 503 || err.status === 500) && i < models.length - 1) continue;
+      if ((err.status === 503 || err.status === 500 || err.empty) && i < models.length - 1) continue;
+      if (err.empty) throw new Error('Gemini no devolvió respuesta; intenta de nuevo o pregúntalo de otra forma.');
       if (err.status === 503 || err.status === 500) throw new Error('Gemini está saturado en este momento; intenta de nuevo en unos segundos.');
       if (err.timeout) throw new Error('Gemini tardó demasiado en contestar; intenta de nuevo.');
       if (err.status === 404) throw new Error(`Google no encontró ningún modelo de Gemini para tu clave (${first404}). Avísale a Claude con este mensaje o cambia a Claude en Conexiones → Asistente.`);
       if (err.status === 400 && /API_KEY_INVALID/.test(err.message)) throw new Error('La clave de Gemini no es válida.');
       // 429 = cuota o límite de la clave (no es "ocupado"); se muestra lo que dice Google.
       if (err.status === 429) throw new Error(`Google rechazó la petición por límite de cuota de tu clave de Gemini (${first429}). Espera un minuto, revisa la cuota en aistudio.google.com o cambia a Claude en Conexiones → Asistente.`);
+      if (err.status === 400) throw new Error(`Gemini rechazó la petición (${model}: ${googleMessage(err)}). Prueba otra vez; si sigue, avísale a Claude con este mensaje.`);
       throw err;
     }
   }
