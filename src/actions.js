@@ -9,8 +9,9 @@ const apps = require('./apps');
 const study = require('./study');
 
 // Solo se gasta una consulta extra si la frase parece una orden.
-const LOOKS_LIKE_COMMAND = /(^|[^a-z])(recuerda(me)?|avisa(me)?|agenda|agendar|crea|crear|programa|pon(me)?|abre|abreme|abrir|inicia|ejecuta|lanza|alarma|temporizador|cancela|borra|que recordatorios|agrega(me)?|anade(me)?|anota(me)?|apunta(me)?|a mis pendientes|a mi lista|busca(me)?|encuentra(me)?|que me (mando|escribio|envio)|modo estudio|clima|temperatura|va a llover|llover|llueve|hace frio|hace calor|paraguas|cuanto (tardo|tiempo|me tardo|hago)|como llego|tiempo (de|en) (llegar|camino)|ruta a|a estudiar|voy a estudiar|termine de estudiar|termina el modo|cada\s+\w+\s+(hora|minuto)s?|en\s+\d+\s+(minuto|hora)s?)/;
+LOOKS_LIKE_COMMAND = /(^|[^a-z])(recuerda(me)?|avisa(me)?|agenda|agendar|crea|crear|programa|pon(me)?|abre|abreme|abrir|inicia|ejecuta|lanza|alarma|temporizador|cancela|borra|que recordatorios|agrega(me)?|anade(me)?|anota(me)?|apunta(me)?|a mis pendientes|a mi lista|busca(me)?|encuentra(me)?|que me (mando|escribio|envio)|notion|modo estudio|clima|temperatura|va a llover|llover|llueve|hace frio|hace calor|paraguas|cuanto (tardo|tiempo|me tardo|hago)|como llego|tiempo (de|en) (llegar|camino)|ruta a|a estudiar|voy a estudiar|termine de estudiar|termina el modo|cada\s+\w+\s+(hora|minuto)s?|en\s+\d+\s+(minuto|hora)s?)/;
 const weather = require('./weather');
+const notion = require('./notion');
 const plain = (t) => String(t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
 const SYSTEM = (now) => `Conviertes la orden del usuario en una acción para su asistente. Responde SOLO con un JSON, sin texto extra.
@@ -25,6 +26,8 @@ Acciones:
 {"action":"create_task","title":"la tarea o pendiente, frase corta","due":"YYYY-MM-DD o null si no dijo fecha"}  // para "agrega a mis pendientes...", "anota que debo..."
 {"action":"weather"}  // "cómo está el clima", "va a llover hoy"
 {"action":"route","to":"destino: nombre guardado (escuela, trabajo) o dirección"}  // "cuánto tardo a la escuela", "cómo llego a..."
+{"action":"notion_add","title":"texto a anotar, frase corta"}  // "anota en Notion...", "agrega a Notion..."
+{"action":"notion_search","query":"palabras a buscar en Notion"}  // "busca en Notion..."
 {"action":"list_reminders"}
 {"action":"cancel_reminders"}
 {"action":"open_app","name":"nombre del programa"}
@@ -105,6 +108,18 @@ async function run(a, now) {
       const r = await weather.route(to);
       const t = r.minutes >= 60 ? `${Math.floor(r.minutes / 60)} h ${r.minutes % 60} min` : `${r.minutes} minutos`;
       return `En auto son unos ${t} (${r.km} km), sin contar el tráfico de ahora.`;
+    }
+    case 'notion_add': {
+      const title = String(a.title || '').trim();
+      if (!title) return 'No entendí qué anotar en Notion; dímelo otra vez.';
+      await notion.addPage(title);
+      return `Listo, lo anoté en Notion: "${title.slice(0, 80)}".`;
+    }
+    case 'notion_search': {
+      const q = String(a.query || '').trim();
+      const r = await notion.search(q, 5);
+      if (!r.length) return q ? 'No encontré nada en Notion con eso.' : 'No hay páginas compartidas con la integración.';
+      return `En Notion encontré: ${r.slice(0, 3).map((p) => p.title).join(', ')}` + (r.length > 3 ? ` y ${r.length - 3} más.` : '.');
     }
     case 'list_reminders': {
       const l = alarms.list();

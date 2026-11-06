@@ -56,6 +56,7 @@ function context(data) {
     archivos: pick(data && data.files).map(({ name }) => name),
     spotify: data && data.spotify && !data.spotify.error ? { sonandoAhora: data.spotify.nowPlaying, reciente: pick(data.spotify.recent).map(({ title, artist }) => ({ title, artist })) } : undefined,
     clima: data && data.weather && !data.weather.error ? data.weather : undefined,
+    notion: data && Array.isArray(data.notion) ? data.notion.map(({ title, edited }) => ({ title, edited })) : undefined,
     disenosCanva: pick(data && data.designs).map(({ title, updatedAt }) => ({ title, updatedAt }))
   });
 }

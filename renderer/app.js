@@ -94,6 +94,10 @@ function render(data) {
     'Aún no tienes diseños.');
   const wx = data.weather;
   $('weather-now').textContent = wx && !wx.error ? `Ahora en ${wx.place}: ${wx.desc}, ${wx.temp}° (máx ${wx.max}°, mín ${wx.min}°, lluvia ${wx.rain}%).` : '';
+  const nt = data.notion;
+  $('notion-card').classList.toggle('hidden', !nt);
+  renderList($('notion-recent'), nt && nt.error ? { error: nt.error } : nt,
+    (p) => item({ title: p.title, meta: p.edited ? 'editado ' + fmtDate(p.edited) : '', url: p.url }), 'Sin páginas compartidas con la integración.');
   const sp = data.spotify;
   $('spotify-now').textContent = sp && !sp.error
     ? (sp.nowPlaying ? `Suena ahora: ${sp.nowPlaying.title} · ${sp.nowPlaying.artist}` : 'Nada suena ahora.')
@@ -106,6 +110,8 @@ async function renderStatus() {
   const s = await api.getStatus();
   $('google-status').textContent = STATUS_TEXT[s.google];
   $('moodle-status').textContent = STATUS_TEXT[s.moodle];
+  $('notion-status').textContent = STATUS_TEXT[s.notion];
+  $('notion-disconnect').classList.toggle('hidden', s.notion !== 'conectado');
   $('canva-status').textContent = s.canva === 'sin-credenciales' ? 'Faltan las claves de Canva' : STATUS_TEXT[s.canva];
   $('canva-connect').classList.toggle('hidden', s.canva !== 'desconectado');
   $('canva-disconnect').classList.toggle('hidden', s.canva === 'sin-credenciales');
@@ -283,6 +289,13 @@ $('canva-form').onsubmit = (e) => {
   $('canva-secret').value = '';
   run(() => api.canvaSetApp(id, secret), 'Claves guardadas. Ahora toca "Conectar con Canva".');
 };
+$('notion-form').onsubmit = (e) => {
+  e.preventDefault();
+  const token = $('notion-token').value;
+  $('notion-token').value = '';
+  run(() => api.notionConnect(token, $('notion-db').value), 'Notion conectado.');
+};
+$('notion-disconnect').onclick = () => run(api.notionDisconnect, 'Notion desconectado.');
 $('canva-connect').onclick = () => run(api.canvaConnect, 'Canva conectado.');
 $('canva-disconnect').onclick = () => run(api.canvaDisconnect, 'Canva desconectado.');
 $('spotify-form').onsubmit = (e) => {

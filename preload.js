@@ -11,6 +11,8 @@ contextBridge.exposeInMainWorld('asistente', {
   moodleConnectPassword: (user, pass) => ipcRenderer.invoke('moodle-connect-password', user, pass),
   moodleConnectBrowser: () => ipcRenderer.invoke('moodle-connect-browser'),
   moodleDisconnect: () => ipcRenderer.invoke('moodle-disconnect'),
+  notionConnect: (token, db) => ipcRenderer.invoke('notion-connect', token, db),
+  notionDisconnect: () => ipcRenderer.invoke('notion-disconnect'),
   canvaSetApp: (id, secret) => ipcRenderer.invoke('canva-set-app', id, secret),
   canvaConnect: () => ipcRenderer.invoke('canva-connect'),
   canvaDisconnect: () => ipcRenderer.invoke('canva-disconnect'),
