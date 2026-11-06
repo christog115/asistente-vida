@@ -9,6 +9,7 @@ const ai = require('./src/ai');
 const voice = require('./src/voice');
 const phone = require('./src/phone');
 const canva = require('./src/canva');
+const notion = require('./src/notion');
 const spotify = require('./src/spotify');
 const whatsapp = require('./src/whatsapp');
 const updater = require('./src/updater');
@@ -90,8 +91,8 @@ function createTray() {
 
 async function refresh() {
   const safe = (p) => p.catch((err) => ({ error: err.message }));
-  const [g, m, c, sp] = await Promise.all([
-    safe(google.fetchAll()), safe(moodle.fetchPending()), safe(canva.recentDesigns()), safe(spotify.fetchAll())
+  const [g, m, c, sp, nt] = await Promise.all([
+    safe(google.fetchAll()), safe(moodle.fetchPending()), safe(canva.recentDesigns()), safe(spotify.fetchAll()), safe(notion.recent())
   ]);
   const school = [];
   for (const part of [g && g.school, m]) {
@@ -104,10 +105,11 @@ async function refresh() {
     sheet: g && g.sheet,
     designs: c,
     spotify: sp,
+    notion: nt,
     school,
     briefing: store.get('briefing') || null,
     errors: {
-      canva: c && c.error, spotify: sp && sp.error, google: g && g.error, classroom: g && g.school && g.school.error, moodle: m && m.error
+      canva: c && c.error, notion: nt && nt.error, spotify: sp && sp.error, google: g && g.error, classroom: g && g.school && g.school.error, moodle: m && m.error
     }
   };
   if (win) win.webContents.send('data', latest);
@@ -143,6 +145,7 @@ function statuses() {
     google: google.status(),
     moodle: moodle.status(),
     canva: canva.status(),
+    notion: notion.status(),
     spotify: spotify.status(),
     whatsapp: whatsapp.status(),
     update: updater.status(),
@@ -177,6 +180,8 @@ ipcMain.handle('moodle-connect-browser', async () => {
   return refresh();
 });
 ipcMain.handle('moodle-disconnect', () => { moodle.disconnect(); return refresh(); });
+ipcMain.handle('notion-connect', async (_e, token, db) => { await notion.connect(token, db); return refresh(); });
+ipcMain.handle('notion-disconnect', () => { notion.disconnect(); return refresh(); });
 ipcMain.handle('canva-set-app', (_e, id, secret) => { canva.setApp(id, secret); return refresh(); });
 ipcMain.handle('canva-connect', async () => { await canva.connect(); return refresh(); });
 ipcMain.handle('canva-disconnect', () => { canva.disconnect(); return refresh(); });
