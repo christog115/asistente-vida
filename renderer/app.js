@@ -1,5 +1,15 @@
 const api = window.asistente;
 const $ = (id) => document.getElementById(id);
+// El aviso se muestra en Conexiones y también en el tablero (para acciones como "Guardar en Drive").
+let boardTimer = null;
+const msg = {
+  set textContent(t) {
+    $('message').textContent = t;
+    $('board-message').textContent = t;
+    clearTimeout(boardTimer);
+    if (t && !/…$/.test(t)) boardTimer = setTimeout(() => { $('board-message').textContent = ''; }, 8000);
+  }
+};
 
 const STATUS_TEXT = {
   conectado: 'Conectado',
@@ -60,10 +70,20 @@ function item({ title, meta, url, cls }) {
 
 function render(data) {
   const h = new Date().getHours();
-  $('greeting').textContent = h < 12 ? 'Buenos días, Christopher' : h < 19 ? 'Buenas tardes, Christopher' : 'Buenas noches, Christopher';
+  const name = data.userName || 'Christopher';
+  $('greeting').textContent = (h < 12 ? 'Buenos días, ' : h < 19 ? 'Buenas tardes, ' : 'Buenas noches, ') + name;
+  document.body.dataset.perfil = data.profile || 'personal';
   const school = data.school || [];
   const soon = school.filter((t) => dueClass(t.due) === 'soon').length;
-  $('summary').textContent = `${school.length} tareas de la escuela · ${soon} vencen pronto · actualizado ${fmtDate(data.updatedAt)}`;
+  if (data.profile === 'contador') {
+    const open = (data.fiscal || []).filter((f) => !f.done);
+    const late = open.filter((f) => new Date(f.due) < Date.now()).length;
+    const week = open.filter((f) => new Date(f.due) >= Date.now() && new Date(f.due) - Date.now() < 7 * 24 * 3600 * 1000).length;
+    $('summary').textContent = `${late ? late + ' vencidas sin marcar · ' : ''}${week} vencen en 7 días · ${(data.clients || []).length} clientes · actualizado ${fmtDate(data.updatedAt)}`;
+    renderWork(data);
+  } else {
+    $('summary').textContent = `${school.length} tareas de la escuela · ${soon} vencen pronto · actualizado ${fmtDate(data.updatedAt)}`;
+  }
 
   const schoolErr = [data.errors?.classroom, data.errors?.moodle].filter(Boolean).join(' · ');
   renderList($('school'), schoolErr && !school.length ? { error: schoolErr } : school,
@@ -106,8 +126,163 @@ function render(data) {
     (t) => item({ title: t.title, meta: t.artist + ' · ' + fmtDate(t.playedAt), url: t.url }), 'Sin canciones recientes.');
 }
 
+// --- Perfil Contador ---
+const money = (n, cur) => (n == null ? '' : Number(n).toLocaleString('es-MX', { style: 'currency', currency: /^[A-Z]{3}$/.test(cur || '') ? cur : 'MXN' }));
+
+function button(text, onclick, ghost = true) {
+  const b = document.createElement('button');
+  b.textContent = text;
+  if (ghost) b.className = 'ghost';
+  b.onclick = onclick;
+  return b;
+}
+
+function actionRow({ title, meta, url, cls }, buttons) {
+  const e = li('', 'devices-row' + (cls ? ' ' + cls : ''));
+  const main = item({ title, meta, url });
+  main.className = 'row-main';
+  const box = document.createElement('div');
+  box.className = 'row-actions';
+  box.append(...buttons);
+  e.append(main, box);
+  return e;
+}
+
+function renderWork(data) {
+  const clientsList = data.clients || [];
+  // En pantalla: lo atrasado y lo del próximo mes (el asistente ve hasta 60 días).
+  const fiscalShown = Array.isArray(data.fiscal) ? data.fiscal.filter((f) => new Date(f.due) - Date.now() < 31 * 24 * 3600 * 1000) : data.fiscal;
+  renderList($('fiscal'), clientsList.length ? fiscalShown : [],
+    (f) => actionRow({
+      title: f.title,
+      meta: `${f.client} · límite ${fmtDate(f.due, true)}${f.done ? ' · presentada' : ''}`,
+      cls: f.done ? 'done' : dueClass(f.due)
+    }, [button(f.done ? 'Desmarcar' : 'Presentada', () => run(() => api.fiscalToggle(f.id), f.done ? 'Desmarcada.' : 'Marcada como presentada.'))]),
+    clientsList.length ? 'Nada vence en los próximos 30 días.' : 'Agrega tus clientes en Conexiones → Clientes.');
+
+  const box = $('client-pending');
+  box.replaceChildren();
+  if (!clientsList.length) box.append(li('Sin clientes todavía.', 'muted'));
+  for (const c of clientsList) {
+    const block = document.createElement('li');
+    block.className = 'client-block';
+    const head = document.createElement('strong');
+    head.textContent = c.name;
+    const ul = document.createElement('ul');
+    for (const p of c.pending || []) {
+      const row = document.createElement('li');
+      const t = document.createElement('span');
+      t.textContent = p.text;
+      row.append(t, button('Listo', () => run(() => api.clientPendingDone(c.id, p.id), 'Quitado de pendientes.')));
+      ul.append(row);
+    }
+    if (!(c.pending || []).length) ul.append(li('Nada pendiente.', 'muted'));
+    block.append(head, ul);
+    box.append(block);
+  }
+  const sel = $('pending-client');
+  const keep = sel.value;
+  sel.replaceChildren(...clientsList.map((c) => new Option(c.name, c.id)));
+  if (keep) sel.value = keep;
+  $('pending-form').classList.toggle('hidden', !clientsList.length);
+
+  const inv = data.invoices || (data.errors?.cfdi ? { error: data.errors.cfdi } : null);
+  renderList($('invoices'), inv,
+    (x) => actionRow({
+      title: `${x.emisor.nombre || x.emisor.rfc} → ${x.receptor.nombre || x.receptor.rfc}`,
+      meta: [x.fecha ? fmtDate(x.fecha, true) : '', x.tipo, money(x.total, x.moneda), x.client ? `cliente: ${x.client} (${x.direccion})` : 'sin cliente'].filter(Boolean).join(' · '),
+      url: x.url
+    }, [x.savedUrl ? Object.assign(document.createElement('a'), { href: x.savedUrl, target: '_blank', textContent: 'En Drive' })
+      : button('Guardar en Drive', () => run(() => api.cfdiSave(x.key), 'Factura guardada en Drive.'))]),
+    'No llegaron facturas en los últimos 60 días.');
+  $('cfdi-save-all').classList.toggle('hidden', !(Array.isArray(inv) && inv.some((x) => x.clientId && !x.savedUrl)));
+}
+
+$('pending-form').onsubmit = (e) => {
+  e.preventDefault();
+  const text = $('pending-text').value;
+  run(async () => { const d = await api.clientPendingAdd($('pending-client').value, text); $('pending-text').value = ''; return d; }, 'Anotado.');
+};
+$('cfdi-save-all').onclick = async () => {
+  msg.textContent = 'Guardando en Drive…';
+  try {
+    const n = await api.cfdiSaveAll();
+    msg.textContent = `Listo: ${n} factura${n === 1 ? '' : 's'} guardada${n === 1 ? '' : 's'} en Drive.`;
+  } catch (err) {
+    msg.textContent = 'Error: ' + cleanError(err);
+  }
+};
+
+let obligationDefaults = {};
+function renderObligationChecks(labels) {
+  const box = $('client-obligations');
+  if (box.childElementCount) return;
+  for (const [k, label] of Object.entries(labels)) {
+    const l = document.createElement('label');
+    l.className = 'row';
+    const c = document.createElement('input');
+    c.type = 'checkbox';
+    c.value = k;
+    l.append(c, ' ' + label);
+    box.append(l);
+  }
+  applyDefaults();
+}
+function applyDefaults() {
+  const on = obligationDefaults[$('client-regimen').value] || [];
+  $('client-obligations').querySelectorAll('input').forEach((c) => { c.checked = on.includes(c.value); });
+}
+$('client-regimen').onchange = applyDefaults;
+
+function renderClients(list, labels) {
+  const ul = $('clients');
+  ul.replaceChildren();
+  if (!list.length) ul.append(li('Sin clientes.', 'muted'));
+  const REG = { moral: 'persona moral', fisica: 'persona física', resico: 'RESICO' };
+  for (const c of list) {
+    ul.append(actionRow({
+      title: c.name,
+      meta: [c.rfc, REG[c.regimen], (c.obligations || []).map((o) => labels[o] || o).join(', ')].filter(Boolean).join(' · ')
+    }, [
+      button('Editar', () => {
+        $('client-name').value = c.name;
+        $('client-rfc').value = c.rfc || '';
+        $('client-regimen').value = c.regimen;
+        $('client-obligations').querySelectorAll('input').forEach((x) => { x.checked = (c.obligations || []).includes(x.value); });
+        $('client-name').focus();
+      }),
+      button('Quitar', () => { if (confirm(`¿Quitar a ${c.name}?`)) run(() => api.clientsRemove(c.id), 'Cliente quitado.'); })
+    ]));
+  }
+}
+
+$('client-form').onsubmit = (e) => {
+  e.preventDefault();
+  const c = {
+    name: $('client-name').value, rfc: $('client-rfc').value, regimen: $('client-regimen').value,
+    obligations: [...$('client-obligations').querySelectorAll('input:checked')].map((x) => x.value)
+  };
+  run(async () => {
+    const d = await api.clientsSave(c);
+    $('client-name').value = ''; $('client-rfc').value = '';
+    applyDefaults();
+    return d;
+  }, 'Cliente guardado.');
+};
+
+$('profile-form').onsubmit = (e) => {
+  e.preventDefault();
+  run(() => api.profileSet($('profile').value, $('user-name').value), 'Perfil guardado.');
+};
+
 async function renderStatus() {
   const s = await api.getStatus();
+  document.body.dataset.perfil = s.profile;
+  if (document.activeElement !== $('user-name')) $('user-name').value = s.userName;
+  $('profile').value = s.profile;
+  obligationDefaults = s.obligationDefaults;
+  renderObligationChecks(s.obligations);
+  renderClients(s.clients, s.obligations);
   $('google-status').textContent = STATUS_TEXT[s.google];
   $('moodle-status').textContent = STATUS_TEXT[s.moodle];
   $('notion-status').textContent = STATUS_TEXT[s.notion];
@@ -236,7 +411,7 @@ $('phone-create').onclick = () => run(async () => {
 }, 'Escribe el nombre del tema en la app ntfy.');
 $('phone-copy').onclick = async () => {
   await navigator.clipboard.writeText($('phone-topic').textContent);
-  $('message').textContent = 'Nombre copiado.';
+  msg.textContent = 'Nombre copiado.';
 };
 $('phone-test').onclick = () => run(() => api.phoneTest(), 'Prueba enviada: revisa tu celular.');
 $('phone-disable').onclick = () => run(() => api.phoneDisable(), 'Celular desconectado.');
@@ -255,13 +430,13 @@ for (const which of ['claude', 'gemini']) {
 }
 
 async function run(fn, okText) {
-  $('message').textContent = 'Trabajando…';
+  msg.textContent = 'Trabajando…';
   try {
     const data = await fn();
     if (data && data.updatedAt) render(data);
-    $('message').textContent = okText;
+    msg.textContent = okText;
   } catch (err) {
-    $('message').textContent = 'Error: ' + cleanError(err);
+    msg.textContent = 'Error: ' + cleanError(err);
   }
   renderStatus();
 }
@@ -412,19 +587,19 @@ $('update-check').onclick = async () => { await api.updateCheck(); setTimeout(re
 $('backup-export').onclick = async () => {
   try {
     const file = await api.backupExport($('backup-password').value);
-    $('message').textContent = file ? 'Copia guardada en ' + file : 'Cancelado.';
+    msg.textContent = file ? 'Copia guardada en ' + file : 'Cancelado.';
   } catch (err) {
-    $('message').textContent = 'Error: ' + cleanError(err);
+    msg.textContent = 'Error: ' + cleanError(err);
   }
 };
 $('backup-import').onclick = async () => {
   if (!confirm('Restaurar reemplaza la configuración actual con la de la copia. ¿Continuar?')) return;
   try {
     const data = await api.backupImport($('backup-password').value);
-    $('message').textContent = data ? 'Copia restaurada.' : 'Cancelado.';
+    msg.textContent = data ? 'Copia restaurada.' : 'Cancelado.';
     renderStatus();
   } catch (err) {
-    $('message').textContent = 'Error: ' + cleanError(err);
+    msg.textContent = 'Error: ' + cleanError(err);
   }
 };
 $('update-install').onclick = () => api.updateInstall();
@@ -435,7 +610,7 @@ $('save-reminders').onclick = async () => {
   await api.setReminders(times);
   await api.setAutostart($('autostart').checked);
   await api.setMorningSpeech($('morning-speech').checked);
-  $('message').textContent = 'Guardado.';
+  msg.textContent = 'Guardado.';
   renderStatus();
 };
 

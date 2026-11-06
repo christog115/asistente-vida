@@ -4,6 +4,7 @@
 const Anthropic = require('@anthropic-ai/sdk');
 const { GoogleGenAI } = require('@google/genai');
 const store = require('./store');
+const profile = require('./profile');
 
 const CLAUDE_MODEL = 'claude-opus-5-5';
 // Se puede cambiar en config.json ("geminiModel") cuando Google saque otro.
@@ -15,13 +16,30 @@ function googleMessage(err) {
   try { return JSON.parse(err.message).error.message.slice(0, 220); } catch { return String(err.message).slice(0, 220); }
 }
 
-const SYSTEM = `Eres el asistente personal de Christopher, estudiante en México.
+const SYSTEM_PERSONAL = (name) => `Eres el asistente personal de ${name}, estudiante en México.
 Respondes en español, en tono cercano y directo, con frases cortas.
 Abajo tienes sus datos actuales: tareas de la escuela (Classroom y Moodle),
 calendario, pendientes, correos sin leer, archivos recientes y su hoja de
 pendientes de Google Sheets. Úsalos para responder. Si algo no está en los
 datos, dilo en vez de inventarlo. Las fechas están en formato ISO (UTC);
 conviértelas a la hora de México al mencionarlas.`;
+
+const SYSTEM_CONTADOR = (name) => `Eres el asistente de trabajo de ${name}, contador en México.
+Respondes en español, en tono profesional pero cercano, con frases cortas.
+Abajo tienes sus datos actuales: calendario fiscal (obligaciones del SAT, IMSS
+e INFONAVIT de cada cliente, con fecha límite y si ya se presentó), sus
+clientes con los pendientes de cada uno, facturas CFDI que llegaron a su
+correo, calendario, pendientes, correos sin leer, archivos recientes y su hoja
+de Google Sheets. Úsalos para responder y prioriza lo que vence primero. Si
+algo no está en los datos, dilo en vez de inventarlo. Las fechas límite ya
+consideran fines de semana y días festivos oficiales, pero no los días
+inhábiles extra que el SAT publica cada año: si te preguntan una fecha exacta,
+sugiere confirmarla en sat.gob.mx. No des una opinión fiscal como definitiva.
+Las fechas están en formato ISO (UTC); conviértelas a la hora de México.`;
+
+function systemPrompt() {
+  return profile.get() === 'contador' ? SYSTEM_CONTADOR(profile.userName()) : SYSTEM_PERSONAL(profile.userName());
+}
 
 function provider() {
   return store.get('aiProvider') || 'claude';
@@ -57,7 +75,15 @@ function context(data) {
     spotify: data && data.spotify && !data.spotify.error ? { sonandoAhora: data.spotify.nowPlaying, reciente: pick(data.spotify.recent).map(({ title, artist }) => ({ title, artist })) } : undefined,
     clima: data && data.weather && !data.weather.error ? data.weather : undefined,
     notion: data && Array.isArray(data.notion) ? data.notion.map(({ title, edited }) => ({ title, edited })) : undefined,
-    disenosCanva: pick(data && data.designs).map(({ title, updatedAt }) => ({ title, updatedAt }))
+    disenosCanva: pick(data && data.designs).map(({ title, updatedAt }) => ({ title, updatedAt })),
+    ...(data && data.profile === 'contador' ? {
+      calendarioFiscal: pick(data.fiscal).filter((f) => new Date(f.due) - Date.now() < 31 * 24 * 3600 * 1000)
+        .map(({ client, title, due, done }) => ({ cliente: client, obligacion: title, fechaLimite: due, presentada: done })),
+      clientes: pick(data.clients).map(({ name, rfc, regimen, pending }) => ({ nombre: name, rfc, regimen, pendientes: pick(pending).map((p) => p.text) })),
+      facturas: pick(data.invoices).slice(0, 20).map(({ fecha, tipo, total, moneda, emisor, receptor, client, direccion }) => ({
+        fecha, tipo, total, moneda, emisor: emisor.nombre || emisor.rfc, receptor: receptor.nombre || receptor.rfc, cliente: client, direccion
+      }))
+    } : {})
   });
 }
 
@@ -171,11 +197,17 @@ frases cortas, sin listas, sin markdown, sin emojis y sin links.`;
 // history: [{ role: 'user' | 'assistant', content: string }]
 // opts.voice: la pregunta llegó por voz y la respuesta se va a hablar.
 async function chat(history, data, opts = {}) {
-  const system = `${SYSTEM}${opts.voice ? '\n\n' + VOICE : ''}\n\nDatos actuales:\n${context(data)}`;
+  const system = `${systemPrompt()}${opts.voice ? '\n\n' + VOICE : ''}\n\nDatos actuales:\n${context(data)}`;
   return provider() === 'gemini' ? askGemini(system, history) : askClaude(system, history);
 }
 
 async function dailyBriefing(data) {
+  if (data && data.profile === 'contador') {
+    return chat([{
+      role: 'user',
+      content: 'Hazme el resumen de hoy en 5 líneas o menos: qué obligación del SAT vence primero y de qué cliente, si hay alguna vencida sin marcar, qué clientes tienen pendientes, si llegaron facturas nuevas y qué tengo en el calendario. Termina con una sugerencia concreta de por dónde empezar.'
+    }], data);
+  }
   return chat([{
     role: 'user',
     content: 'Hazme el resumen de hoy en 5 líneas o menos: qué entrego primero, qué tengo en el calendario y si hay algún correo importante, y si el clima pide algo (paraguas, abrigo). Termina con una sugerencia concreta de por dónde empezar.'

@@ -16,7 +16,9 @@ const SCOPES = [
   'https://www.googleapis.com/auth/drive.metadata.readonly',
   'https://www.googleapis.com/auth/classroom.courses.readonly',
   'https://www.googleapis.com/auth/classroom.coursework.me.readonly',
-  'https://www.googleapis.com/auth/spreadsheets.readonly'
+  'https://www.googleapis.com/auth/spreadsheets.readonly',
+  // Solo los archivos y carpetas que la app crea (perfil Contador: facturas guardadas en Drive).
+  'https://www.googleapis.com/auth/drive.file'
 ];
 
 // El archivo de credenciales se descarga de Google Cloud (ver README).
@@ -285,4 +287,4 @@ async function searchDrive(query, max = 5) {
   return files.map((f) => ({ name: f.name, url: f.webViewLink }));
 }
 
-module.exports = { status, connect, disconnect, fetchAll, createEvent, createTask, searchMail, searchDrive };
+module.exports = { authedClient, status, connect, disconnect, fetchAll, createEvent, createTask, searchMail, searchDrive };

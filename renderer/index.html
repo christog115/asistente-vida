@@ -22,11 +22,32 @@
   </header>
 
   <main id="tablero" class="view">
+    <p id="board-message" class="muted board-message"></p>
     <section class="card wide briefing">
       <h2>Resumen del asistente</h2>
       <p id="briefing" class="muted"></p>
     </section>
-    <section class="card wide">
+    <section class="card wide" data-solo="contador">
+      <h2>Calendario fiscal</h2>
+      <p class="muted small-note">Fechas límite de tus clientes (SAT, IMSS, INFONAVIT), ya recorridas por fines de semana y festivos. Confirma en sat.gob.mx los días inhábiles extra de cada año.</p>
+      <ul id="fiscal" class="list"></ul>
+    </section>
+    <section class="card wide" data-solo="contador">
+      <h2>Clientes y lo que les falta</h2>
+      <ul id="client-pending" class="list"></ul>
+      <form id="pending-form" class="inline-form">
+        <select id="pending-client"></select>
+        <input id="pending-text" placeholder="Qué falta (ej. estado de cuenta de octubre)" autocomplete="off">
+        <button type="submit">Anotar</button>
+      </form>
+    </section>
+    <section class="card wide" data-solo="contador">
+      <h2>Facturas en tu correo (CFDI)</h2>
+      <p class="muted small-note">Correos de los últimos 60 días con XML. Se relacionan con tus clientes por RFC.</p>
+      <ul id="invoices" class="list"></ul>
+      <button id="cfdi-save-all" class="ghost">Guardar en Drive las de mis clientes</button>
+    </section>
+    <section class="card wide" data-solo="personal">
       <h2>Tareas de la escuela</h2>
       <ul id="school" class="list"></ul>
     </section>
@@ -54,7 +75,7 @@
       <h2>Notion: editado hace poco</h2>
       <ul id="notion-recent" class="list"></ul>
     </section>
-    <section class="card">
+    <section class="card" data-solo="personal">
       <h2>Diseños recientes de Canva</h2>
       <ul id="designs" class="list"></ul>
     </section>
@@ -70,7 +91,7 @@
       <button id="notion-disconnect" class="ghost hidden">Desconectar</button>
     </section>
 
-    <section class="card">
+    <section class="card" data-solo="personal">
       <h2>Spotify</h2>
       <p id="spotify-now" class="muted"></p>
       <ul id="spotify-recent" class="list"></ul>
@@ -92,8 +113,40 @@
 
   <main id="ajustes" class="view hidden">
     <section class="card">
+      <h2>Perfil</h2>
+      <p class="muted">Personal muestra la escuela, música y modo estudio. Contador muestra clientes, el calendario del SAT y las facturas de tu correo. Lo demás (Google, voz, celular) funciona igual.</p>
+      <form id="profile-form">
+        <label>Tu nombre <input id="user-name" autocomplete="off"></label>
+        <label>Perfil
+          <select id="profile">
+            <option value="personal">Personal</option>
+            <option value="contador">Contador</option>
+          </select>
+        </label>
+        <button type="submit">Guardar</button>
+      </form>
+    </section>
+
+    <section class="card" data-solo="contador">
+      <h2>Clientes</h2>
+      <p class="muted">Agrega a cada cliente con su RFC (para reconocer sus facturas) y marca las obligaciones que le llevas. Para cambiar uno, guárdalo otra vez con el mismo RFC.</p>
+      <ul id="clients" class="list"></ul>
+      <form id="client-form">
+        <input id="client-name" placeholder="Nombre o razón social" autocomplete="off">
+        <input id="client-rfc" placeholder="RFC (opcional)" autocomplete="off">
+        <select id="client-regimen">
+          <option value="moral">Persona moral</option>
+          <option value="fisica">Persona física (actividad empresarial o profesional)</option>
+          <option value="resico">RESICO persona física</option>
+        </select>
+        <div id="client-obligations" class="checks"></div>
+        <button type="submit">Guardar cliente</button>
+      </form>
+    </section>
+
+    <section class="card">
       <h2>Google</h2>
-      <p class="muted">Gmail, Calendar, Tasks, Drive y Classroom.</p>
+      <p class="muted">Gmail, Calendar, Tasks, Drive y Classroom. En el perfil Contador también guarda facturas en Drive (si ya estaba conectado, toca Desconectar y Conectar una vez para dar ese permiso).</p>
       <p>Estado: <strong id="google-status"></strong></p>
       <button id="google-connect">Conectar con Google</button>
       <button id="google-disconnect" class="ghost">Desconectar</button>
@@ -158,7 +211,7 @@
       <button id="whatsapp-disconnect" class="ghost">Desconectar</button>
     </section>
 
-    <section class="card">
+    <section class="card" data-solo="personal">
       <h2>Plataforma de la escuela (Moodle)</h2>
       <label>Dirección <input id="moodle-url" type="url"></label>
       <p>Estado: <strong id="moodle-status"></strong></p>
@@ -249,7 +302,7 @@
       <button id="save-reminders">Guardar</button>
     </section>
 
-    <section class="card">
+    <section class="card" data-solo="personal">
       <h2>Modo estudio</h2>
       <p class="muted">Silencia la voz de resúmenes y avisos, abre tu música (agrega abajo un programa llamado "musica de estudio" con el enlace de tu lista) y te avisa cuándo descansar. También: "kara, modo estudio" o "termina el modo estudio".</p>
       <p id="study-state"></p>

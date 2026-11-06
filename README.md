@@ -12,6 +12,8 @@ App de escritorio (Windows y Mac) que vive en la bandeja del sistema y junta en 
 - **Diseños recientes de Canva** en el tablero.
 - **App del celular** (carpeta `mobile/`): ve el tablero y habla con el asistente desde el teléfono, en casa o fuera con Tailscale.
 
+- **Perfil Contador** (opcional): clientes, calendario del SAT y facturas CFDI de tu correo. Ver abajo.
+
 Arranca sola al prender la PC (en segundo plano) y al cerrar la ventana sigue funcionando en la bandeja.
 
 ## Cómo correrla
@@ -149,6 +151,19 @@ Para publicar una versión nueva (lo hago yo, o tú):
 3. GitHub Actions (`.github/workflows/release.yml`) arma el instalador de Windows y Mac y lo publica en **Releases**.
 
 Requisito: el repositorio debe ser **público** (Settings → General → Danger Zone → Change visibility), porque las apps instaladas descargan sin ninguna clave. El repositorio no contiene claves ni secretos (`credentials/` está ignorado). Ojo: Windows mostrará el aviso de "SmartScreen" porque el instalador no está firmado, y en Mac las actualizaciones automáticas necesitan una app firmada por Apple (cuenta de desarrollador de pago).
+
+## Perfil Contador (versión para el trabajo)
+
+En **Conexiones → Perfil** escribe el nombre de quien usa la app y elige **Contador**. El tablero cambia: se esconden la escuela, Canva, Spotify, Moodle y el modo estudio, y aparecen:
+
+- **Clientes** (en Conexiones): nombre, RFC, régimen (persona moral, persona física o RESICO) y las obligaciones que le llevas. Al elegir el régimen se marcan las de siempre; cámbialas por cliente. Para editar uno, toca **Editar** y guarda (se reconoce por el RFC).
+- **Calendario fiscal**: pago provisional ISR/IVA (día 17), DIOT (último día del mes siguiente), contabilidad electrónica (balanza: día 3 del segundo mes para morales, día 5 para físicas), IMSS (día 17), IMSS/INFONAVIT bimestral (día 17 después del bimestre) y la anual (31 de marzo morales, 30 de abril físicas). Si el día cae en fin de semana o festivo oficial (incluye jueves y viernes santo) se recorre al siguiente día hábil. **No** cuenta los días inhábiles extra que el SAT publica cada año, así que el aviso a lo mucho llega antes; confirma en sat.gob.mx. Toca **Presentada** para quitarla de los avisos. Lo que venció antes de agregar al cliente no aparece como atrasado.
+- **Avisos**: 3 días antes y 1 día antes (este también en voz alta), en la PC, el celular (ntfy) y WhatsApp, igual que las tareas de la escuela. El resumen diario y el de la mañana hablan de lo del SAT, clientes y facturas.
+- **Clientes y lo que les falta**: lista corta por cliente ("estado de cuenta de octubre"). Toca **Listo** al recibirlo.
+- **Facturas en tu correo (CFDI)**: correos de los últimos 60 días con un XML adjunto. Muestra emisor, receptor, total y tipo, y lo relaciona con tus clientes por RFC. **Guardar en Drive** sube el XML (y el PDF del mismo correo) a `Facturas (Asistente)/Cliente/AAAA-MM`. La app solo puede ver en Drive lo que ella misma crea. La primera vez toca **Desconectar** y **Conectar con Google** para dar ese permiso.
+- **Voz o chat**: "anota que a Pérez le falta el estado de cuenta", "ya presenté la DIOT de Constructora del Valle", "¿qué vence esta semana?".
+
+Para instalarlo en la PC de otra persona: instala la app, que esa persona conecte **su propia** cuenta de Google (y su clave de Claude o Gemini) y elija el perfil Contador. Cada PC guarda sus datos por separado.
 
 ## Copia de seguridad
 
