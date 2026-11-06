@@ -50,10 +50,26 @@
       <h2>Archivos recientes de Drive</h2>
       <ul id="files" class="list"></ul>
     </section>
+    <section class="card hidden" id="notion-card">
+      <h2>Notion: editado hace poco</h2>
+      <ul id="notion-recent" class="list"></ul>
+    </section>
     <section class="card">
       <h2>Diseños recientes de Canva</h2>
       <ul id="designs" class="list"></ul>
     </section>
+    <section class="card">
+      <h2>Notion</h2>
+      <p class="muted">Muestra lo último que editaste y deja que le digas "kara, anota en Notion comprar libros". En Notion crea una integración interna (gratis) en notion.so/profile/integrations, copia su token, y en cada página o base que quieras usar toca "..." > Conexiones > agrega tu integración.</p>
+      <p>Estado: <strong id="notion-status"></strong></p>
+      <form id="notion-form">
+        <input id="notion-token" type="password" placeholder="Token de la integración" autocomplete="off">
+        <input id="notion-db" placeholder="Base de datos para anotar (enlace o ID, opcional)" autocomplete="off">
+        <button type="submit">Conectar</button>
+      </form>
+      <button id="notion-disconnect" class="ghost hidden">Desconectar</button>
+    </section>
+
     <section class="card">
       <h2>Spotify</h2>
       <p id="spotify-now" class="muted"></p>
