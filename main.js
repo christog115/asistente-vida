@@ -23,6 +23,10 @@ const weather = require('./src/weather');
 const mobile = require('./src/mobile');
 const store = require('./src/store');
 const backup = require('./src/backup');
+const profile = require('./src/profile');
+const clients = require('./src/clients');
+const fiscal = require('./src/fiscal');
+const cfdi = require('./src/cfdi');
 
 const REFRESH_MS = 15 * 60 * 1000;
 
@@ -90,10 +94,30 @@ function createTray() {
   tray.on('click', showWindow);
 }
 
+// Datos del perfil Contador que salen de la configuración (sin internet).
+function workData(invoices) {
+  return {
+    fiscal: fiscal.deadlines(clients.list(), store.get('fiscalDone') || {}),
+    clients: clients.list(),
+    invoices
+  };
+}
+
+// Después de marcar algo o editar clientes: se recalcula sin volver a Gmail.
+function quickUpdate() {
+  if (!latest) return refresh();
+  latest = { ...latest, profile: profile.get(), userName: profile.userName() };
+  if (latest.profile === 'contador') Object.assign(latest, workData(cfdi.current() || latest.invoices));
+  if (win) win.webContents.send('data', latest);
+  return latest;
+}
+
 async function refresh() {
   const safe = (p) => p.catch((err) => ({ error: err.message }));
-  const [g, m, c, sp, wx, nt] = await Promise.all([
-    safe(google.fetchAll()), safe(moodle.fetchPending()), safe(canva.recentDesigns()), safe(spotify.fetchAll()), safe(weather.fetchWeather()), safe(notion.recent())
+  const work = profile.get() === 'contador';
+  const [g, m, c, sp, wx, nt, inv] = await Promise.all([
+    safe(google.fetchAll()), work ? null : safe(moodle.fetchPending()), safe(canva.recentDesigns()), safe(spotify.fetchAll()), safe(weather.fetchWeather()), safe(notion.recent()),
+    work ? safe(cfdi.recent()) : null
   ]);
   const school = [];
   for (const part of [g && g.school, m]) {
@@ -108,9 +132,13 @@ async function refresh() {
     spotify: sp,
     weather: wx,
     notion: nt,
-    school,
+    school: work ? [] : school,
     briefing: store.get('briefing') || null,
+    profile: profile.get(),
+    userName: profile.userName(),
+    ...(work ? workData(inv && inv.error ? null : inv) : {}),
     errors: {
+      cfdi: inv && inv.error,
       canva: c && c.error, notion: nt && nt.error, spotify: sp && sp.error, google: g && g.error, classroom: g && g.school && g.school.error, moodle: m && m.error
     }
   };
@@ -125,7 +153,7 @@ async function makeBriefing() {
   briefingRunning = true;
   try {
     const text = await ai.dailyBriefing(latest);
-    const briefing = { date: new Date().toDateString(), text, at: new Date().toISOString() };
+    const briefing = { date: new Date().toDateString(), text, at: new Date().toISOString(), profile: profile.get() };
     store.set('briefing', briefing);
     latest = { ...latest, briefing };
     if (win) win.webContents.send('data', latest);
@@ -138,7 +166,9 @@ async function makeBriefing() {
 function maybeBriefing() {
   const b = store.get('briefing');
   const today = new Date().toDateString();
-  if (briefingRunning || !ai.ready() || new Date().getHours() < 5 || (b && b.date === today)) return;
+  // Si cambias de perfil se rehace el resumen con lo del perfil nuevo.
+  const fresh = b && b.date === today && (b.profile || 'personal') === profile.get();
+  if (briefingRunning || !ai.ready() || new Date().getHours() < 5 || fresh) return;
   makeBriefing().catch((err) => console.error('Resumen del asistente:', err.message));
 }
 
@@ -162,7 +192,12 @@ function statuses() {
     sheetUrl: store.get('sheetUrl') || '',
     ai: ai.status(),
     phone: phone.status(),
-    mobile: mobile.status()
+    mobile: mobile.status(),
+    profile: profile.get(),
+    userName: profile.userName(),
+    clients: clients.list(),
+    obligations: Object.fromEntries(Object.entries(fiscal.OBLIGATIONS).map(([k, v]) => [k, v.label])),
+    obligationDefaults: fiscal.DEFAULTS
   };
 }
 
@@ -258,6 +293,26 @@ ipcMain.handle('backup-import', async (_e, password) => {
   backup.importFrom(r.filePaths[0], password);
   return refresh();
 });
+ipcMain.handle('profile-set', (_e, p, name) => {
+  const before = profile.get();
+  profile.set(p, name);
+  return profile.get() !== before ? refresh() : quickUpdate();
+});
+ipcMain.handle('clients-save', (_e, c) => { clients.upsert(c); return quickUpdate(); });
+ipcMain.handle('clients-remove', (_e, id) => { clients.remove(id); return quickUpdate(); });
+ipcMain.handle('client-pending-add', (_e, id, text) => { clients.addPending(id, text); return quickUpdate(); });
+ipcMain.handle('client-pending-done', (_e, id, pid) => { clients.donePending(id, pid); return quickUpdate(); });
+ipcMain.handle('fiscal-toggle', (_e, id) => {
+  const done = { ...(store.get('fiscalDone') || {}) };
+  if (done[id]) delete done[id]; else done[id] = new Date().toISOString();
+  // Se guardan solo las del último año y medio para que no crezca sin fin.
+  const cut = Date.now() - 550 * 24 * 3600 * 1000;
+  for (const [k, at] of Object.entries(done)) if (new Date(at).getTime() < cut) delete done[k];
+  store.set('fiscalDone', done);
+  return quickUpdate();
+});
+ipcMain.handle('cfdi-save', async (_e, key) => { await cfdi.saveToDrive(key); return quickUpdate(); });
+ipcMain.handle('cfdi-save-all', async () => { const n = await cfdi.saveAllClients(); quickUpdate(); return n; });
 ipcMain.handle('set-reminders', (_e, times) => store.set('reminderTimes', times));
 ipcMain.handle('set-morning-speech', (_e, on) => store.set('morningSpeech', !!on));
 ipcMain.handle('set-autostart', (_e, on) => {
