@@ -55,6 +55,7 @@ function context(data) {
     correos: pick(data && data.emails).map(({ from, subject }) => ({ from, subject })),
     archivos: pick(data && data.files).map(({ name }) => name),
     spotify: data && data.spotify && !data.spotify.error ? { sonandoAhora: data.spotify.nowPlaying, reciente: pick(data.spotify.recent).map(({ title, artist }) => ({ title, artist })) } : undefined,
+    clima: data && data.weather && !data.weather.error ? data.weather : undefined,
     notion: data && Array.isArray(data.notion) ? data.notion.map(({ title, edited }) => ({ title, edited })) : undefined,
     disenosCanva: pick(data && data.designs).map(({ title, updatedAt }) => ({ title, updatedAt }))
   });
@@ -177,7 +178,7 @@ async function chat(history, data, opts = {}) {
 async function dailyBriefing(data) {
   return chat([{
     role: 'user',
-    content: 'Hazme el resumen de hoy en 5 líneas o menos: qué entrego primero, qué tengo en el calendario y si hay algún correo importante. Termina con una sugerencia concreta de por dónde empezar.'
+    content: 'Hazme el resumen de hoy en 5 líneas o menos: qué entrego primero, qué tengo en el calendario y si hay algún correo importante, y si el clima pide algo (paraguas, abrigo). Termina con una sugerencia concreta de por dónde empezar.'
   }], data);
 }
 
