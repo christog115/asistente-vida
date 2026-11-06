@@ -92,6 +92,8 @@ function render(data) {
   renderList($('designs'), data.designs || (data.errors?.canva ? { error: data.errors.canva } : null),
     (d) => item({ title: d.title, meta: d.updatedAt ? 'editado ' + fmtDate(d.updatedAt) : '', url: d.url }),
     'Aún no tienes diseños.');
+  const wx = data.weather;
+  $('weather-now').textContent = wx && !wx.error ? `Ahora en ${wx.place}: ${wx.desc}, ${wx.temp}° (máx ${wx.max}°, mín ${wx.min}°, lluvia ${wx.rain}%).` : '';
   const sp = data.spotify;
   $('spotify-now').textContent = sp && !sp.error
     ? (sp.nowPlaying ? `Suena ahora: ${sp.nowPlaying.title} · ${sp.nowPlaying.artist}` : 'Nada suena ahora.')
@@ -112,7 +114,7 @@ async function renderStatus() {
   $('spotify-disconnect').classList.toggle('hidden', s.spotify === 'sin-credenciales');
   $('whatsapp-status').textContent = { conectado: 'Conectado', pausado: 'Pausado', desconectado: 'Sin conectar' }[s.whatsapp];
   renderUpdate(s.update);
-  renderAlarms(s.alarms); renderStudy(s.study);
+  renderAlarms(s.alarms); renderPlaces(s.places || []); renderStudy(s.study);
   renderApps(s.apps);
   $('moodle-url').value = s.moodleUrl;
   $('reminder-times').value = s.reminderTimes.join(', ');
@@ -310,6 +312,27 @@ function renderStudy(st) {
 }
 $('study-start').onclick = () => run(() => api.studyStart(Number($('study-minutes').value)), 'Modo estudio activado.');
 $('study-stop').onclick = () => run(api.studyStop, 'Modo estudio terminado.');
+function renderPlaces(list) {
+  const ul = $('places');
+  ul.replaceChildren();
+  if (!list.length) ul.append(li('Sin lugares guardados.', 'muted'));
+  for (const p of list) {
+    const row = li('', 'devices-row');
+    const label = document.createElement('span');
+    label.textContent = `${p.name} · ${p.label}`;
+    const del = document.createElement('button');
+    del.className = 'ghost';
+    del.textContent = 'Quitar';
+    del.onclick = () => run(() => api.placeRemove(p.name), 'Lugar quitado.');
+    row.append(label, del);
+    ul.append(row);
+  }
+}
+$('place-form').onsubmit = (e) => {
+  e.preventDefault();
+  run(() => api.placeSet($('place-name').value, $('place-address').value), 'Lugar guardado.');
+};
+
 function renderAlarms(list) {
   const ul = $('alarms');
   ul.replaceChildren();

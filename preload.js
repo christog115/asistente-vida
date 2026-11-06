@@ -23,6 +23,8 @@ contextBridge.exposeInMainWorld('asistente', {
   updateSetEnabled: (on) => ipcRenderer.invoke('update-set-enabled', on),
   updateCheck: () => ipcRenderer.invoke('update-check'),
   updateInstall: () => ipcRenderer.invoke('update-install'),
+  placeSet: (name, address) => ipcRenderer.invoke('place-set', name, address),
+  placeRemove: (name) => ipcRenderer.invoke('place-remove', name),
   studyStart: (minutes) => ipcRenderer.invoke('study-start', minutes),
   studyStop: () => ipcRenderer.invoke('study-stop'),
   backupExport: (password) => ipcRenderer.invoke('backup-export', password),

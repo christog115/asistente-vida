@@ -18,6 +18,7 @@ const actions = require('./src/actions');
 const alarms = require('./src/alarms');
 const apps = require('./src/apps');
 const study = require('./src/study');
+const weather = require('./src/weather');
 const mobile = require('./src/mobile');
 const store = require('./src/store');
 const backup = require('./src/backup');
@@ -90,8 +91,8 @@ function createTray() {
 
 async function refresh() {
   const safe = (p) => p.catch((err) => ({ error: err.message }));
-  const [g, m, c, sp] = await Promise.all([
-    safe(google.fetchAll()), safe(moodle.fetchPending()), safe(canva.recentDesigns()), safe(spotify.fetchAll())
+  const [g, m, c, sp, wx] = await Promise.all([
+    safe(google.fetchAll()), safe(moodle.fetchPending()), safe(canva.recentDesigns()), safe(spotify.fetchAll()), safe(weather.fetchWeather())
   ]);
   const school = [];
   for (const part of [g && g.school, m]) {
@@ -104,6 +105,7 @@ async function refresh() {
     sheet: g && g.sheet,
     designs: c,
     spotify: sp,
+    weather: wx,
     school,
     briefing: store.get('briefing') || null,
     errors: {
@@ -149,6 +151,7 @@ function statuses() {
     apps: apps.list(),
     alarms: alarms.list(),
     study: study.status(),
+    places: weather.list(),
     moodleUrl: store.get('moodle').url,
     reminderTimes: store.get('reminderTimes'),
     morningSpeech: store.get('morningSpeech') !== false,
@@ -231,6 +234,8 @@ ipcMain.handle('mobile-revoke', (_e, id) => { mobile.revoke(id); return mobile.s
 ipcMain.handle('apps-add', (_e, name, target) => apps.add(name, target));
 ipcMain.handle('apps-remove', (_e, name) => apps.remove(name));
 ipcMain.handle('alarms-remove', (_e, id) => alarms.remove(id));
+ipcMain.handle('place-set', async (_e, name, address) => { const l = await weather.setPlace(name, address); refresh().catch(() => {}); return l; });
+ipcMain.handle('place-remove', (_e, name) => weather.removePlace(name));
 ipcMain.handle('study-start', (_e, minutes) => study.start(minutes));
 ipcMain.handle('study-stop', () => study.stop());
 ipcMain.handle('alarms-clear', () => alarms.clear());

@@ -9,7 +9,8 @@ const apps = require('./apps');
 const study = require('./study');
 
 // Solo se gasta una consulta extra si la frase parece una orden.
-const LOOKS_LIKE_COMMAND = /(^|[^a-z])(recuerda(me)?|avisa(me)?|agenda|agendar|crea|crear|programa|pon(me)?|abre|abreme|abrir|inicia|ejecuta|lanza|alarma|temporizador|cancela|borra|que recordatorios|agrega(me)?|anade(me)?|anota(me)?|apunta(me)?|a mis pendientes|a mi lista|busca(me)?|encuentra(me)?|que me (mando|escribio|envio)|modo estudio|a estudiar|voy a estudiar|termine de estudiar|termina el modo|cada\s+\w+\s+(hora|minuto)s?|en\s+\d+\s+(minuto|hora)s?)/;
+const LOOKS_LIKE_COMMAND = /(^|[^a-z])(recuerda(me)?|avisa(me)?|agenda|agendar|crea|crear|programa|pon(me)?|abre|abreme|abrir|inicia|ejecuta|lanza|alarma|temporizador|cancela|borra|que recordatorios|agrega(me)?|anade(me)?|anota(me)?|apunta(me)?|a mis pendientes|a mi lista|busca(me)?|encuentra(me)?|que me (mando|escribio|envio)|modo estudio|clima|temperatura|va a llover|llover|llueve|hace frio|hace calor|paraguas|cuanto (tardo|tiempo|me tardo|hago)|como llego|tiempo (de|en) (llegar|camino)|ruta a|a estudiar|voy a estudiar|termine de estudiar|termina el modo|cada\s+\w+\s+(hora|minuto)s?|en\s+\d+\s+(minuto|hora)s?)/;
+const weather = require('./weather');
 const plain = (t) => String(t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
 const SYSTEM = (now) => `Conviertes la orden del usuario en una acción para su asistente. Responde SOLO con un JSON, sin texto extra.
@@ -22,6 +23,8 @@ Acciones:
 {"action":"study_start","minutes":120}  // "modo estudio", "voy a estudiar 90 minutos"; minutes null si no dijo cuánto
 {"action":"study_stop"}  // "termina el modo estudio", "ya terminé de estudiar"
 {"action":"create_task","title":"la tarea o pendiente, frase corta","due":"YYYY-MM-DD o null si no dijo fecha"}  // para "agrega a mis pendientes...", "anota que debo..."
+{"action":"weather"}  // "cómo está el clima", "va a llover hoy"
+{"action":"route","to":"destino: nombre guardado (escuela, trabajo) o dirección"}  // "cuánto tardo a la escuela", "cómo llego a..."
 {"action":"list_reminders"}
 {"action":"cancel_reminders"}
 {"action":"open_app","name":"nombre del programa"}
@@ -91,6 +94,17 @@ async function run(a, now) {
       const due = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null;
       await google.createTask({ title, due });
       return due ? `Listo, anoté "${title}" para el ${due.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}.` : `Listo, anoté "${title}" en tus pendientes.`;
+    }
+    case 'weather': {
+      const w = await weather.fetchWeather();
+      return w ? weather.weatherText(w) : 'Primero guarda tu casa en "Clima y rutas" para saber el clima.';
+    }
+    case 'route': {
+      const to = String(a.to || '').trim();
+      if (!to) return 'No entendí a dónde vas; dímelo otra vez.';
+      const r = await weather.route(to);
+      const t = r.minutes >= 60 ? `${Math.floor(r.minutes / 60)} h ${r.minutes % 60} min` : `${r.minutes} minutos`;
+      return `En auto son unos ${t} (${r.km} km), sin contar el tráfico de ahora.`;
     }
     case 'list_reminders': {
       const l = alarms.list();

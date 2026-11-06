@@ -243,6 +243,18 @@
     </section>
 
     <section class="card">
+      <h2>Clima y rutas</h2>
+      <p class="muted">Guarda tu casa para que el resumen de la mañana incluya el clima, y otros lugares (escuela, trabajo) para preguntar "kara, ¿cuánto tardo a la escuela?". Los tiempos son en auto y sin tráfico en vivo.</p>
+      <p id="weather-now" class="muted"></p>
+      <ul id="places" class="list"></ul>
+      <form id="place-form" class="inline-form">
+        <input id="place-name" placeholder="Nombre (casa, escuela...)" autocomplete="off">
+        <input id="place-address" placeholder="Dirección, colonia y ciudad" autocomplete="off">
+        <button type="submit">Guardar lugar</button>
+      </form>
+    </section>
+
+    <section class="card">
       <h2>Recordatorios de voz</h2>
       <p class="muted">Los que le pides al asistente ("recuérdame en 25 minutos…").</p>
       <ul id="alarms" class="list"></ul>
