@@ -9,7 +9,7 @@ const apps = require('./apps');
 const study = require('./study');
 
 // Solo se gasta una consulta extra si la frase parece una orden.
-LOOKS_LIKE_COMMAND = /(^|[^a-z])(recuerda(me)?|avisa(me)?|agenda|agendar|crea|crear|programa|pon(me)?|abre|abreme|abrir|inicia|ejecuta|lanza|alarma|temporizador|cancela|borra|que recordatorios|agrega(me)?|anade(me)?|anota(me)?|apunta(me)?|a mis pendientes|a mi lista|busca(me)?|encuentra(me)?|que me (mando|escribio|envio)|notion|modo estudio|clima|temperatura|va a llover|llover|llueve|hace frio|hace calor|paraguas|cuanto (tardo|tiempo|me tardo|hago)|como llego|tiempo (de|en) (llegar|camino)|ruta a|a estudiar|voy a estudiar|termine de estudiar|termina el modo|cada\s+\w+\s+(hora|minuto)s?|en\s+\d+\s+(minuto|hora)s?)/;
+const LOOKS_LIKE_COMMAND = /(^|[^a-z])(recuerda(me)?|avisa(me)?|agenda|agendar|crea|crear|programa|pon(me)?|abre|abreme|abrir|inicia|ejecuta|lanza|alarma|temporizador|cancela|borra|que recordatorios|agrega(me)?|anade(me)?|anota(me)?|apunta(me)?|a mis pendientes|a mi lista|busca(me)?|encuentra(me)?|que me (mando|escribio|envio)|notion|modo estudio|clima|temperatura|va a llover|llover|llueve|hace frio|hace calor|paraguas|cuanto (tardo|tiempo|me tardo|hago)|como llego|tiempo (de|en) (llegar|camino)|ruta a|a estudiar|voy a estudiar|termine de estudiar|termina el modo|cada\s+\w+\s+(hora|minuto)s?|en\s+\d+\s+(minuto|hora)s?)/;
 const weather = require('./weather');
 const notion = require('./notion');
 const plain = (t) => String(t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
