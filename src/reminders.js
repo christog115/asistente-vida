@@ -5,6 +5,7 @@ const { Notification } = require('electron');
 const store = require('./store');
 const phone = require('./phone');
 const whatsapp = require('./whatsapp');
+const weather = require('./weather');
 
 const DAY = 24 * 3600 * 1000;
 // Cada entrega avisa dos veces: a menos de 24 h y a menos de 3 h (esta última también en voz alta).
@@ -44,7 +45,8 @@ function dailySummary(data) {
 function spokenSummary(data, fallback) {
   const b = data.briefing;
   const text = b && b.date === new Date().toDateString() && b.text ? b.text : fallback;
-  return 'Buenos días. ' + text.replace(/[*_#`]/g, '').slice(0, 700);
+  const clima = b && b.text && /clima|llov|paraguas|grados/i.test(b.text) ? '' : ' ' + weather.weatherText(data.weather);
+  return 'Buenos días. ' + (text.replace(/[*_#`]/g, '').slice(0, 700) + clima).trim();
 }
 
 // Al encender la PC (primera vez del día, entre las 5:00 y las 12:00) dice el resumen en voz alta
