@@ -80,7 +80,7 @@ async function askClaude(system, messages) {
   messages = cleanMessages(messages);
   const key = store.getSecret('anthropicKey');
   if (!key) throw new Error('Falta la clave de Claude (Conexiones → Asistente).');
-  const client = new Anthropic({ apiKey: key });
+  const client = new Anthropic({ apiKey: key, timeout: 90 * 1000, maxRetries: 1 });
   try {
     const response = await client.beta.messages.create({
       model: CLAUDE_MODEL,
@@ -99,6 +99,7 @@ async function askClaude(system, messages) {
   } catch (err) {
     if (err instanceof Anthropic.AuthenticationError) throw new Error('La clave de Claude no es válida.');
     if (err instanceof Anthropic.RateLimitError) throw new Error('Claude está ocupado; intenta en un momento.');
+    if (err instanceof Anthropic.APIConnectionTimeoutError) throw new Error('Claude tardó demasiado en contestar; intenta de nuevo.');
     if (err instanceof Anthropic.APIConnectionError) throw new Error('Sin conexión a internet.');
     throw err;
   }

@@ -31,7 +31,8 @@ async function post(body) {
   const res = await fetch(`${GRAPH}/${c.phoneId}/messages`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${c.token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messaging_product: 'whatsapp', to: c.to, ...body })
+    body: JSON.stringify({ messaging_product: 'whatsapp', to: c.to, ...body }),
+    signal: AbortSignal.timeout(15000)
   });
   if (!res.ok) {
     const err = (await res.json().catch(() => ({}))).error || {};

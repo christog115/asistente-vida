@@ -27,7 +27,7 @@ function status() {
 
 async function connectWithPassword(username, password) {
   const body = new URLSearchParams({ username, password, service: 'moodle_mobile_app' });
-  const res = await fetch(`${baseUrl()}/login/token.php`, { method: 'POST', body });
+  const res = await fetch(`${baseUrl()}/login/token.php`, { method: 'POST', body, signal: AbortSignal.timeout(15000) });
   const data = await res.json();
   if (!data.token) {
     // "enablewsdescription" o similar significa que la escuela no permite la API.
@@ -41,7 +41,7 @@ async function connectWithPassword(username, password) {
 async function call(token, wsfunction, params = {}) {
   const body = new URLSearchParams({ wstoken: token, wsfunction, moodlewsrestformat: 'json' });
   for (const [k, v] of Object.entries(params)) body.append(k, String(v));
-  const res = await fetch(`${baseUrl()}/webservice/rest/server.php`, { method: 'POST', body });
+  const res = await fetch(`${baseUrl()}/webservice/rest/server.php`, { method: 'POST', body, signal: AbortSignal.timeout(15000) });
   const data = await res.json();
   if (data && data.exception) throw new Error(data.message);
   return data;

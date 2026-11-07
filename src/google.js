@@ -9,6 +9,9 @@ const fs = require('fs');
 const path = require('path');
 const store = require('./store');
 
+// Si Google no contesta en 20 s se corta la petición en lugar de dejar el tablero esperando.
+google.options({ timeout: 20000 });
+
 const SCOPES = [
   'https://www.googleapis.com/auth/gmail.readonly',
   'https://www.googleapis.com/auth/calendar.events',

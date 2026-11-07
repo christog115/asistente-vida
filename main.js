@@ -2,6 +2,7 @@
 // el sistema, actualización periódica y recordatorios.
 const { app, BrowserWindow, Tray, Menu, ipcMain, shell, nativeImage, session, globalShortcut, Notification, dialog } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const google = require('./src/google');
 const moodle = require('./src/moodle');
 const reminders = require('./src/reminders');
@@ -29,6 +30,16 @@ const REFRESH_MS = 15 * 60 * 1000;
 let win = null;
 let tray = null;
 let latest = null;
+// Lo último que se mostró, guardado en disco para enseñar el tablero al instante al abrir la app
+// mientras llega lo nuevo. Los recordatorios usan solo `latest` (datos frescos), nunca esta copia.
+let cached = null;
+const cacheFile = () => path.join(app.getPath('userData'), 'ultimos-datos.json');
+function loadCache() {
+  try { cached = { ...JSON.parse(fs.readFileSync(cacheFile(), 'utf8')), cached: true }; } catch { cached = null; }
+}
+function saveCache(data) {
+  fs.promises.writeFile(cacheFile(), JSON.stringify(data)).catch(() => {});
+}
 let quitting = false;
 
 if (!app.requestSingleInstanceLock()) app.quit();
@@ -90,8 +101,26 @@ function createTray() {
   tray.on('click', showWindow);
 }
 
-async function refresh() {
-  const safe = (p) => p.catch((err) => ({ error: err.message }));
+// Si ya hay una actualización en curso (timer, botón, bandeja o el celular), se reusa esa
+// en lugar de volver a pedir todo a cada servicio.
+let refreshing = null;
+function refresh() {
+  if (!refreshing) refreshing = doRefresh().finally(() => { refreshing = null; });
+  return refreshing;
+}
+
+// Tope por fuente: si una se cuelga (p. ej. Moodle sin contestar) las demás se muestran igual.
+const SOURCE_LIMIT_MS = 45 * 1000;
+function limit(promise) {
+  let timer;
+  const stop = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error('tardó demasiado en contestar')), SOURCE_LIMIT_MS);
+  });
+  return Promise.race([promise, stop]).finally(() => clearTimeout(timer));
+}
+
+async function doRefresh() {
+  const safe = (p) => limit(p).catch((err) => ({ error: err.message }));
   const [g, m, c, sp, wx, nt] = await Promise.all([
     safe(google.fetchAll()), safe(moodle.fetchPending()), safe(canva.recentDesigns()), safe(spotify.fetchAll()), safe(weather.fetchWeather()), safe(notion.recent())
   ]);
@@ -115,6 +144,7 @@ async function refresh() {
     }
   };
   if (win) win.webContents.send('data', latest);
+  saveCache(latest);
   maybeBriefing();
   return latest;
 }
@@ -129,6 +159,7 @@ async function makeBriefing() {
     store.set('briefing', briefing);
     latest = { ...latest, briefing };
     if (win) win.webContents.send('data', latest);
+    saveCache(latest);
     return latest;
   } finally {
     briefingRunning = false;
@@ -166,7 +197,7 @@ function statuses() {
   };
 }
 
-ipcMain.handle('get-data', () => latest || refresh());
+ipcMain.handle('get-data', () => latest || cached || refresh());
 ipcMain.handle('refresh', () => refresh());
 ipcMain.handle('get-status', () => statuses());
 ipcMain.handle('google-connect', async () => { await google.connect(); return refresh(); });
@@ -265,6 +296,7 @@ ipcMain.handle('set-autostart', (_e, on) => {
 });
 
 app.whenReady().then(() => {
+  loadCache();
   if (process.platform === 'win32') app.setAppUserModelId('mx.christopher.asistente-vida');
   // La primera vez se activa el arranque con el sistema; luego se respeta lo que elijas.
   if (store.get('autoStartInit') !== true) {
@@ -281,7 +313,7 @@ app.whenReady().then(() => {
     cb(permission !== 'media' || (win && wc === win.webContents));
   });
   mobile.start({
-    getData: async () => latest || refresh(),
+    getData: async () => latest || cached || refresh(),
     refresh,
     chat: (history) => ai.chat(history, latest)
   });
