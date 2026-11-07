@@ -36,7 +36,8 @@ async function tokenRequest(app, params) {
   const res = await fetch(`${API}/oauth/token`, {
     method: 'POST',
     headers: { Authorization: basic(app), 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams(params)
+    body: new URLSearchParams(params),
+    signal: AbortSignal.timeout(15000)
   });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(`Canva rechazó el acceso (${body.error_description || body.error || res.status}).`);
@@ -111,7 +112,8 @@ async function recentDesigns() {
   const token = await accessToken();
   if (!token) return null;
   const res = await fetch(`${API}/designs?sort_by=modified_descending&limit=8`, {
-    headers: { Authorization: `Bearer ${token}` }
+    headers: { Authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(15000)
   });
   const body = await res.json().catch(() => ({}));
   if (res.status === 401) {

@@ -58,12 +58,17 @@ function item({ title, meta, url, cls }) {
   return e;
 }
 
+let fresh = false;
 function render(data) {
+  // La copia guardada nunca reemplaza datos nuevos que ya hayan llegado.
+  if (data.cached && fresh) return;
+  if (!data.cached) fresh = true;
   const h = new Date().getHours();
   $('greeting').textContent = h < 12 ? 'Buenos días, Christopher' : h < 19 ? 'Buenas tardes, Christopher' : 'Buenas noches, Christopher';
   const school = data.school || [];
   const soon = school.filter((t) => dueClass(t.due) === 'soon').length;
-  $('summary').textContent = `${school.length} tareas de la escuela · ${soon} vencen pronto · actualizado ${fmtDate(data.updatedAt)}`;
+  $('summary').textContent = `${school.length} tareas de la escuela · ${soon} vencen pronto · `
+    + (data.cached ? `guardado el ${fmtDate(data.updatedAt)}, actualizando…` : `actualizado ${fmtDate(data.updatedAt)}`);
 
   const schoolErr = [data.errors?.classroom, data.errors?.moodle].filter(Boolean).join(' · ');
   renderList($('school'), schoolErr && !school.length ? { error: schoolErr } : school,
@@ -439,6 +444,10 @@ $('save-reminders').onclick = async () => {
   renderStatus();
 };
 
+// Mientras llegan los primeros datos cada tarjeta dice "Cargando…" (y no "Conecta esta fuente").
+for (const id of ['school', 'events', 'tasks', 'sheet', 'emails', 'files', 'designs', 'spotify-recent', 'notion-recent']) {
+  $(id).replaceChildren(li('Cargando…', 'muted loading'));
+}
 api.onData(render);
 api.getData().then(render);
 renderStatus();
