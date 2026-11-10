@@ -1,6 +1,7 @@
 // El asistente: responde preguntas y arma el resumen del día usando tus datos
-// del tablero. Puede usar Claude (Anthropic) o Gemini (Google); tú eliges en
-// "Conexiones". Las claves de API se guardan cifradas como los demás tokens.
+// del tablero. Puede usar Claude (Anthropic), Gemini (Google) u OpenJarvis
+// (IA local que corre en tu PC o en tu servidor de casa, sin internet); tú eliges
+// en "Conexiones". Las claves de API se guardan cifradas como los demás tokens.
 const Anthropic = require('@anthropic-ai/sdk');
 const { GoogleGenAI } = require('@google/genai');
 const store = require('./store');
@@ -23,24 +24,55 @@ pendientes de Google Sheets. Úsalos para responder. Si algo no está en los
 datos, dilo en vez de inventarlo. Las fechas están en formato ISO (UTC);
 conviértelas a la hora de México al mencionarlas.`;
 
+const PROVIDERS = ['claude', 'gemini', 'openjarvis'];
+// "jarvis serve" escucha aquí por defecto. Si lo instalas en el servidor de casa,
+// pon su dirección (por ejemplo http://192.168.1.50:8000 o la de Tailscale).
+const OPENJARVIS_DEFAULT_URL = 'http://127.0.0.1:8000';
+
 function provider() {
-  return store.get('aiProvider') || 'claude';
+  const p = store.get('aiProvider');
+  return PROVIDERS.includes(p) ? p : 'claude';
+}
+
+function openJarvisUrl() {
+  return (store.get('openjarvisUrl') || OPENJARVIS_DEFAULT_URL).replace(/\/+$/, '');
 }
 
 function status() {
   return {
     provider: provider(),
     claude: store.getSecret('anthropicKey') ? 'conectado' : 'desconectado',
-    gemini: store.getSecret('geminiKey') ? 'conectado' : 'desconectado'
+    gemini: store.getSecret('geminiKey') ? 'conectado' : 'desconectado',
+    // OpenJarvis no necesita clave: cuenta como listo en cuanto lo eliges o guardas su dirección.
+    openjarvis: store.get('openjarvisUrl') || provider() === 'openjarvis' ? 'conectado' : 'desconectado',
+    openjarvisUrl: openJarvisUrl(),
+    openjarvisModel: store.get('openjarvisModel') || '',
+    openjarvisOffline: store.get('openjarvisOffline') !== false
   };
 }
 
 function setKey(which, key) {
-  store.setSecret(which === 'gemini' ? 'geminiKey' : 'anthropicKey', key ? key.trim() : null);
+  const name = { gemini: 'geminiKey', openjarvis: 'openjarvisKey' }[which] || 'anthropicKey';
+  store.setSecret(name, key ? key.trim() : null);
 }
 
 function setProvider(p) {
-  store.set('aiProvider', p === 'gemini' ? 'gemini' : 'claude');
+  store.set('aiProvider', PROVIDERS.includes(p) ? p : 'claude');
+}
+
+// changes: { url, model, key, offline }. La clave solo hace falta si OpenJarvis
+// corre en otra máquina (ahí "jarvis serve" exige OPENJARVIS_API_KEY).
+function setOpenJarvis(changes = {}) {
+  if (changes.url !== undefined) {
+    let url = String(changes.url || '').trim();
+    if (url && !/^https?:\/\//i.test(url)) url = 'http://' + url;
+    if (url) new URL(url); // lanza si la dirección no es válida
+    store.set('openjarvisUrl', url || OPENJARVIS_DEFAULT_URL);
+  }
+  if (changes.model !== undefined) store.set('openjarvisModel', String(changes.model || '').trim() || null);
+  if (changes.key !== undefined && changes.key !== '') store.setSecret('openjarvisKey', String(changes.key).trim() || null);
+  if (changes.offline !== undefined) store.set('openjarvisOffline', !!changes.offline);
+  return status();
 }
 
 // Datos del tablero en texto compacto para el modelo.
@@ -99,7 +131,7 @@ async function askClaude(system, messages) {
   } catch (err) {
     if (err instanceof Anthropic.AuthenticationError) throw new Error('La clave de Claude no es válida.');
     if (err instanceof Anthropic.RateLimitError) throw new Error('Claude está ocupado; intenta en un momento.');
-    if (err instanceof Anthropic.APIConnectionError) throw new Error('Sin conexión a internet.');
+    if (err instanceof Anthropic.APIConnectionError) throw Object.assign(new Error('Sin conexión a internet.'), { offline: true });
     throw err;
   }
 }
@@ -165,6 +197,76 @@ async function askGemini(system, messages) {
   }
 }
 
+// OpenJarvis habla el mismo idioma que la API de OpenAI (/v1/chat/completions).
+async function openJarvisFetch(path, body, ms) {
+  const headers = { 'Content-Type': 'application/json' };
+  const key = store.getSecret('openjarvisKey');
+  if (key) headers.Authorization = 'Bearer ' + key;
+  let res;
+  try {
+    res = await fetch(openJarvisUrl() + path, {
+      method: body ? 'POST' : 'GET',
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: AbortSignal.timeout(ms)
+    });
+  } catch (err) {
+    if (err.name === 'TimeoutError') throw new Error('OpenJarvis tardó demasiado en contestar. Los modelos locales son más lentos la primera vez; intenta de nuevo.');
+    throw new Error(`No encontré OpenJarvis en ${openJarvisUrl()}. Revisa que esté abierto ("jarvis serve") y que la dirección en Conexiones → Asistente sea la correcta.`);
+  }
+  if (res.status === 401 || res.status === 403) throw new Error('OpenJarvis pidió clave: pon la misma que usaste en OPENJARVIS_API_KEY (Conexiones → Asistente).');
+  if (!res.ok) {
+    const text = (await res.text().catch(() => '')).slice(0, 200);
+    throw new Error(`OpenJarvis respondió con error ${res.status}${text ? ': ' + text : ''}`);
+  }
+  return res.json();
+}
+
+// Si no elegiste modelo se usa el primero que tenga instalado OpenJarvis.
+async function openJarvisModel() {
+  const chosen = store.get('openjarvisModel');
+  if (chosen) return chosen;
+  const list = await openJarvisFetch('/v1/models', null, 10000);
+  const id = list && Array.isArray(list.data) && list.data[0] && list.data[0].id;
+  if (!id) throw new Error('OpenJarvis no tiene ningún modelo instalado. En la terminal corre "jarvis doctor" para ver qué falta.');
+  return id;
+}
+
+async function askOpenJarvis(system, messages) {
+  const model = await openJarvisModel();
+  const res = await openJarvisFetch('/v1/chat/completions', {
+    model,
+    messages: [{ role: 'system', content: system }, ...cleanMessages(messages)],
+    max_tokens: 1024,
+    stream: false
+  }, 120000);
+  const text = String((res.choices && res.choices[0] && res.choices[0].message && res.choices[0].message.content) || '')
+    // Algunos modelos locales (Qwen, DeepSeek) escriben su "pensamiento" entre <think>…</think>.
+    .replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+  if (!text) throw new Error('OpenJarvis no devolvió respuesta; intenta de nuevo.');
+  return text;
+}
+
+// ¿El error fue por falta de internet? (Claude ya lo traduce; Gemini deja el error de fetch).
+function isOffline(err) {
+  if (err && err.offline) return true;
+  const msg = String((err && err.message) || '');
+  return /fetch failed|ENOTFOUND|ECONNREFUSED|ECONNRESET|ETIMEDOUT|EAI_AGAIN|network/i.test(msg) && !(err && err.status);
+}
+
+// Usa la IA elegida; si es Claude o Gemini y no hay internet, contesta OpenJarvis
+// (si ya lo configuraste y no apagaste esa opción).
+async function ask_(system, messages) {
+  const p = provider();
+  if (p === 'openjarvis') return askOpenJarvis(system, messages);
+  try {
+    return await (p === 'gemini' ? askGemini(system, messages) : askClaude(system, messages));
+  } catch (err) {
+    if (!isOffline(err) || !store.get('openjarvisUrl') || store.get('openjarvisOffline') === false) throw err;
+    return askOpenJarvis(system, messages);
+  }
+}
+
 const VOICE = `Esta respuesta se va a leer en voz alta: contesta en una a tres
 frases cortas, sin listas, sin markdown, sin emojis y sin links.`;
 
@@ -172,7 +274,7 @@ frases cortas, sin listas, sin markdown, sin emojis y sin links.`;
 // opts.voice: la pregunta llegó por voz y la respuesta se va a hablar.
 async function chat(history, data, opts = {}) {
   const system = `${SYSTEM}${opts.voice ? '\n\n' + VOICE : ''}\n\nDatos actuales:\n${context(data)}`;
-  return provider() === 'gemini' ? askGemini(system, history) : askClaude(system, history);
+  return ask_(system, history);
 }
 
 async function dailyBriefing(data) {
@@ -189,7 +291,14 @@ function ready() {
 
 // Una pregunta suelta sin los datos del tablero (para interpretar órdenes).
 function ask(system, text) {
-  return provider() === 'gemini' ? askGemini(system, [{ role: 'user', content: text }]) : askClaude(system, [{ role: 'user', content: text }]);
+  return ask_(system, [{ role: 'user', content: text }]);
 }
 
-module.exports = { status, setKey, setProvider, chat, ask, dailyBriefing, ready };
+// Prueba la conexión con OpenJarvis y dice qué modelo va a usar.
+async function testOpenJarvis() {
+  const model = await openJarvisModel();
+  const reply = await askOpenJarvis('Responde en español con una sola frase corta.', [{ role: 'user', content: 'Di hola.' }]);
+  return { model, reply };
+}
+
+module.exports = { status, setKey, setProvider, setOpenJarvis, testOpenJarvis, chat, ask, dailyBriefing, ready };

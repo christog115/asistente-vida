@@ -44,12 +44,27 @@ Si ya habías conectado Google antes de la Fase 2, dale **Desconectar** y **Cone
 
 Crea una hoja con tres columnas: **Tarea**, **Fecha** y **Hecho**. Pega su link en **Conexiones → Google**. Las filas con "sí", "x" o "listo" en *Hecho* no aparecen.
 
-## Asistente (Claude o Gemini)
+## Asistente (Claude, Gemini u OpenJarvis)
 
 En **Conexiones → Asistente** eliges cuál usar y pegas su clave de API:
 
 - **Claude:** crea una clave en <https://platform.claude.com> (Settings → API keys). Se cobra por uso; preguntas cortas cuestan centavos. Usa Claude Opus 5.5 con esfuerzo bajo, y si Claude rechaza algo por seguridad, la API reintenta sola con otro modelo.
 - **Gemini:** crea una clave gratis en <https://aistudio.google.com/apikey>.
+- **OpenJarvis (sin internet):** IA gratis de código abierto (Stanford, Apache 2.0) que corre en tu propia PC o en tu servidor de casa. No necesita clave ni internet una vez instalada. Ver abajo.
+
+### OpenJarvis: IA sin internet
+
+1. En la PC, abre PowerShell y corre el instalador oficial (instala Python, Ollama y un modelo inicial; tarda unos minutos):
+   ```powershell
+   irm https://open-jarvis.github.io/OpenJarvis/install.ps1 | iex
+   ```
+2. Arranca el servidor: `jarvis serve --port 8000`. Déjalo abierto (o usa el servicio de Windows que trae el instalador; `jarvis doctor` dice qué falta).
+3. En la app, **Conexiones → Asistente → OpenJarvis**: deja `http://127.0.0.1:8000`, toca **Guardar** y luego **Probar**.
+4. Elige **OpenJarvis** arriba para usarlo siempre, o déjalo en Claude/Gemini con la casilla **"Si se va el internet, contestar con OpenJarvis"** encendida: así solo entra cuando no hay conexión.
+
+**En el servidor de casa (Ubuntu):** instálalo con `curl -fsSL https://open-jarvis.github.io/OpenJarvis/install.sh | bash` y arráncalo escuchando en la red con una clave: `OPENJARVIS_API_KEY=una-clave-larga jarvis serve --host 0.0.0.0 --port 8000` (sin clave se niega a abrirse a la red). En la app pon `http://IP-del-servidor:8000` y la misma clave. Ojo: si el internet se va, la PC sigue viendo al servidor por tu wifi, pero desde fuera de casa no.
+
+Los modelos locales son más lentos que Claude o Gemini y piden RAM (8 GB mínimo; con tarjeta de video va mucho mejor). Si en **Modelo** no pones nada, se usa el primero que tenga instalado OpenJarvis.
 
 Cada mañana (desde las 5:00, en cuanto la PC esté prendida) el asistente arma tu resumen y lo usa en la notificación de las 7:00. También puedes pedirlo con **Generar resumen de hoy** en la pestaña Asistente.
 

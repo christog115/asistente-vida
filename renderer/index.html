@@ -107,6 +107,7 @@
       <p class="muted">Elige qué inteligencia usa el asistente. Las claves se guardan cifradas en tu PC.</p>
       <label class="row"><input type="radio" name="provider" value="claude"> Claude</label>
       <label class="row"><input type="radio" name="provider" value="gemini"> Gemini</label>
+      <label class="row"><input type="radio" name="provider" value="openjarvis"> OpenJarvis (en tu PC, sin internet)</label>
       <h3>Claude <small id="claude-status" class="muted"></small></h3>
       <form id="claude-form" class="inline-form">
         <input id="claude-key" type="password" placeholder="Clave de API de Claude (sk-ant-…)" autocomplete="off">
@@ -117,6 +118,16 @@
         <input id="gemini-key" type="password" placeholder="Clave de API de Gemini" autocomplete="off">
         <button type="submit">Guardar</button>
       </form>
+      <h3>OpenJarvis <small id="openjarvis-status" class="muted"></small></h3>
+      <p class="muted">IA gratis que corre en tu PC o en tu servidor de casa y funciona sin internet. Instálalo y ábrelo con <strong>jarvis serve</strong> (pasos en el README).</p>
+      <form id="openjarvis-form">
+        <input id="openjarvis-url" placeholder="http://127.0.0.1:8000" autocomplete="off">
+        <input id="openjarvis-model" placeholder="Modelo (vacío = el que tenga instalado)" autocomplete="off">
+        <input id="openjarvis-key" type="password" placeholder="Clave (solo si está en otra máquina)" autocomplete="off">
+        <button type="submit">Guardar</button>
+        <button id="openjarvis-test" type="button" class="ghost">Probar</button>
+      </form>
+      <label class="row"><input type="checkbox" id="openjarvis-offline"> Si se va el internet, contestar con OpenJarvis aunque uses Claude o Gemini</label>
     </section>
 
     <section class="card">
@@ -224,7 +235,7 @@
 
     <section class="card">
       <h2>Voz (Jarvis)</h2>
-      <p class="muted">Escucha siempre una palabra clave y luego tu pregunta. El audio se procesa en tu PC; solo el texto de tu pregunta va a Claude o Gemini. También puedes hablarle con <strong>Ctrl+Shift+J</strong>.</p>
+      <p class="muted">Escucha siempre una palabra clave y luego tu pregunta. El audio se procesa en tu PC; solo el texto de tu pregunta va a la IA que elegiste (con OpenJarvis tampoco sale de tu casa). También puedes hablarle con <strong>Ctrl+Shift+J</strong>.</p>
       <label class="row"><input id="voice-enabled" type="checkbox"> Escuchar siempre</label>
       <form id="voice-form" class="inline-form">
         <input id="voice-wake" placeholder="kara, jarvis" autocomplete="off">

@@ -81,7 +81,7 @@ function render(data) {
   const b = data.briefing;
   $('briefing').textContent = b && b.date === new Date().toDateString()
     ? b.text
-    : 'Conecta Claude o Gemini en "Conexiones" y aquí verás tu resumen cada mañana.';
+    : 'Conecta Claude, Gemini u OpenJarvis en "Conexiones" y aquí verás tu resumen cada mañana.';
   renderList($('sheet'), data.sheet,
     (t) => item({ title: t.title, meta: t.due ? 'para ' + t.due : 'sin fecha', url: t.url }),
     'Todo hecho en tu hoja.');
@@ -133,6 +133,10 @@ async function renderStatus() {
   if (!s.phone.hasTopic) $('phone-qr').classList.add('hidden');
   $('claude-status').textContent = STATUS_TEXT[s.ai.claude];
   $('gemini-status').textContent = STATUS_TEXT[s.ai.gemini];
+  $('openjarvis-status').textContent = s.ai.openjarvis === 'conectado' ? 'Configurado' : 'Sin configurar';
+  if (document.activeElement !== $('openjarvis-url')) $('openjarvis-url').value = s.ai.openjarvisUrl;
+  if (document.activeElement !== $('openjarvis-model')) $('openjarvis-model').value = s.ai.openjarvisModel;
+  $('openjarvis-offline').checked = s.ai.openjarvisOffline;
   document.querySelectorAll('input[name=provider]').forEach((r) => { r.checked = r.value === s.ai.provider; });
 }
 
@@ -243,8 +247,29 @@ $('phone-disable').onclick = () => run(() => api.phoneDisable(), 'Celular descon
 
 $('sheet-url').onchange = (e) => run(() => api.setSheetUrl(e.target.value.trim()), 'Hoja guardada.');
 document.querySelectorAll('input[name=provider]').forEach((r) => {
-  r.onchange = () => run(() => api.aiSetProvider(r.value), 'Asistente: ' + (r.value === 'gemini' ? 'Gemini' : 'Claude'));
+  r.onchange = () => run(() => api.aiSetProvider(r.value), 'Asistente: ' + ({ gemini: 'Gemini', openjarvis: 'OpenJarvis' }[r.value] || 'Claude'));
 });
+$('openjarvis-form').onsubmit = (e) => {
+  e.preventDefault();
+  const key = $('openjarvis-key').value;
+  $('openjarvis-key').value = '';
+  run(async () => {
+    const s = await api.openJarvisSet({ url: $('openjarvis-url').value, model: $('openjarvis-model').value, key });
+    $('openjarvis-status').textContent = 'Configurado';
+    $('openjarvis-url').value = s.openjarvisUrl;
+  }, 'OpenJarvis guardado. Usa "Probar" para revisar que conteste.');
+};
+$('openjarvis-test').onclick = async () => {
+  $('message').textContent = 'Probando OpenJarvis… (la primera vez puede tardar)';
+  try {
+    const r = await api.openJarvisTest();
+    $('message').textContent = `OpenJarvis contestó con ${r.model}: "${r.reply}"`;
+  } catch (err) {
+    $('message').textContent = 'Error: ' + cleanError(err);
+  }
+};
+$('openjarvis-offline').onchange = (e) => run(() => api.openJarvisSet({ offline: e.target.checked }),
+  e.target.checked ? 'Sin internet contestará OpenJarvis.' : 'Sin internet ya no se usará OpenJarvis.');
 for (const which of ['claude', 'gemini']) {
   $(which + '-form').onsubmit = (e) => {
     e.preventDefault();
