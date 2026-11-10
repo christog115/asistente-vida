@@ -200,6 +200,8 @@ ipcMain.handle('update-install', () => { quitting = true; updater.installNow(); 
 ipcMain.handle('set-sheet-url', (_e, url) => { store.set('sheetUrl', url); return refresh(); });
 ipcMain.handle('ai-set-key', (_e, which, key) => ai.setKey(which, key));
 ipcMain.handle('ai-set-provider', (_e, p) => ai.setProvider(p));
+ipcMain.handle('openjarvis-set', (_e, changes) => ai.setOpenJarvis(changes));
+ipcMain.handle('openjarvis-test', () => ai.testOpenJarvis());
 ipcMain.handle('ai-chat', async (_e, history, opts) => {
   // Si la última frase es una orden (recordatorio, evento, abrir un programa) se ejecuta en vez de charlar.
   const last = history[history.length - 1];
