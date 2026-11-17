@@ -38,6 +38,8 @@ contextBridge.exposeInMainWorld('asistente', {
   setSheetUrl: (url) => ipcRenderer.invoke('set-sheet-url', url),
   aiSetKey: (which, key) => ipcRenderer.invoke('ai-set-key', which, key),
   aiSetProvider: (p) => ipcRenderer.invoke('ai-set-provider', p),
+  openJarvisSet: (changes) => ipcRenderer.invoke('openjarvis-set', changes),
+  openJarvisTest: () => ipcRenderer.invoke('openjarvis-test'),
   aiChat: (history, opts) => ipcRenderer.invoke('ai-chat', history, opts),
   voiceStatus: () => ipcRenderer.invoke('voice-status'),
   piperInstall: () => ipcRenderer.invoke('piper-install'),

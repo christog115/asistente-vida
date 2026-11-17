@@ -52,27 +52,47 @@ function dailySummary(data) {
   return parts.length ? parts.join(' · ') : 'No tienes pendientes. ¡Buen día!';
 }
 
+function greeting(now = new Date()) {
+  const h = now.getHours();
+  return h >= 5 && h < 12 ? 'Buenos días.' : h >= 12 && h < 19 ? 'Buenas tardes.' : 'Buenas noches.';
+}
+
 // Versión para leer en voz alta: el resumen completo del asistente si ya está, sin pasarse de largo.
 function spokenSummary(data, fallback) {
   const b = data.briefing;
   const text = b && b.date === new Date().toDateString() && b.text ? b.text : fallback;
   const clima = b && b.text && /clima|llov|paraguas|grados/i.test(b.text) ? '' : ' ' + weather.weatherText(data.weather);
-  return 'Buenos días. ' + (text.replace(/[*_#`]/g, '').slice(0, 700) + clima).trim();
+  return greeting() + ' ' + (text.replace(/[*_#`]/g, '').slice(0, 700) + clima).trim();
 }
 
-// Al encender la PC (primera vez del día, entre las 5:00 y las 12:00) dice el resumen en voz alta
-// sin esperar a la hora fija. Espera hasta 3 minutos al resumen del asistente; si no llega, usa el básico.
+// La primera vez del día que la PC está encendida (al arrancar, al despertar de la suspensión o al
+// desbloquear) da el resumen, a cualquier hora: notificación siempre y voz si está activada.
+// Antes solo hablaba entre las 5:00 y las 12:00 y sin voz no mostraba nada, así que si la PC
+// estaba apagada a la hora fija (7:00) no llegaba ningún resumen hasta las 20:00.
+// Espera hasta 3 minutos al resumen del asistente; si no llega, usa el básico.
 let firstSeen = null;
-function morning(data, speak) {
-  const now = new Date();
-  const today = now.toDateString();
-  if (!data || !speak || store.get('morningSpeech') === false) return;
-  if (now.getHours() < 5 || now.getHours() >= 12 || store.get('morningSpoken') === today) return;
+let waitFresh = false;
+
+// Al despertar la PC los datos son viejos: se espera a que termine la actualización.
+function awake(refreshing) {
+  firstSeen = null;
+  waitFresh = true;
+  Promise.resolve(refreshing).catch(() => {}).finally(() => { waitFresh = false; });
+}
+
+function startup(data, openWindow, speak) {
+  const today = new Date().toDateString();
+  if (!data || waitFresh || store.get('startupSummary') === today) return;
   const b = data.briefing;
   if (!firstSeen) firstSeen = Date.now();
   if (!(b && b.date === today && b.text) && Date.now() - firstSeen < 3 * 60000) return;
-  store.set('morningSpoken', today);
-  speak(spokenSummary(data, dailySummary(data)));
+  store.set('startupSummary', today);
+  const summary = dailySummary(data);
+  notify('Tu resumen del día', summary, openWindow);
+  // Si ya lo dijo hoy la hora fija de la mañana, no lo repite en voz alta.
+  if (speak && store.get('morningSpeech') !== false && store.get('morningSpoken') !== today) {
+    if (speak(spokenSummary(data, summary)) !== false) store.set('morningSpoken', today);
+  }
 }
 
 // Se llama cada minuto con los datos más recientes del tablero.
@@ -82,6 +102,8 @@ function tick(data, openWindow, speak) {
   const slot = `${now.toDateString()} ${hhmm(now)}`;
   if (store.get('reminderTimes').includes(hhmm(now)) && lastSlot !== slot) {
     lastSlot = slot;
+    // Si a la hora fija la PC ya estaba prendida, cuenta como el resumen del día.
+    if (now.getHours() < 12) store.set('startupSummary', now.toDateString());
     const summary = dailySummary(data);
     notify('Tu resumen del día', summary, openWindow);
     if (speak) {
@@ -137,4 +159,4 @@ function fiscalTick(data, openWindow, speak) {
   }
 }
 
-module.exports = { tick, morning, dailySummary };
+module.exports = { tick, startup, awake, dailySummary };
