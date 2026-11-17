@@ -109,6 +109,8 @@ form { display: grid; gap: 8px; }
 .error:empty { display: none; }
 .devices-row { flex-direction: row !important; justify-content: space-between; align-items: center; gap: 8px; }
 .devices-row button { padding: 4px 10px; }
+.loading { animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .4; } }
 
 /* Perfiles: lo marcado con data-solo solo aparece en ese perfil. */
 body[data-perfil="contador"] [data-solo="personal"],

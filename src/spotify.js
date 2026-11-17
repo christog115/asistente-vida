@@ -32,7 +32,8 @@ async function tokenRequest(params, previous) {
   const res = await fetch(TOKEN_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams(params)
+    body: new URLSearchParams(params),
+    signal: AbortSignal.timeout(15000)
   });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(`Spotify rechazó el acceso (${body.error_description || body.error || res.status}).`);
@@ -110,7 +111,7 @@ async function accessToken() {
 }
 
 async function get(token, path) {
-  const res = await fetch(API + path, { headers: { Authorization: `Bearer ${token}` } });
+  const res = await fetch(API + path, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(15000) });
   if (res.status === 204) return null;
   const body = await res.json().catch(() => ({}));
   if (res.status === 401) {
@@ -179,7 +180,8 @@ async function control(command, { contextUri } = {}) {
   const res = await fetch(API + call[1], {
     method: call[0],
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: call[2] ? JSON.stringify(call[2]) : undefined
+    body: call[2] ? JSON.stringify(call[2]) : undefined,
+    signal: AbortSignal.timeout(15000)
   });
   if (res.ok) return;
   const body = await res.json().catch(() => ({}));

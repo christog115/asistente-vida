@@ -68,21 +68,26 @@ function item({ title, meta, url, cls }) {
   return e;
 }
 
+let fresh = false;
 function render(data) {
+  // La copia guardada nunca reemplaza datos nuevos que ya hayan llegado.
+  if (data.cached && fresh) return;
+  if (!data.cached) fresh = true;
   const h = new Date().getHours();
   const name = data.userName || 'Christopher';
   $('greeting').textContent = (h < 12 ? 'Buenos días, ' : h < 19 ? 'Buenas tardes, ' : 'Buenas noches, ') + name;
   document.body.dataset.perfil = data.profile || 'personal';
   const school = data.school || [];
   const soon = school.filter((t) => dueClass(t.due) === 'soon').length;
+  const updated = data.cached ? `guardado el ${fmtDate(data.updatedAt)}, actualizando…` : `actualizado ${fmtDate(data.updatedAt)}`;
   if (data.profile === 'contador') {
     const open = (data.fiscal || []).filter((f) => !f.done);
     const late = open.filter((f) => new Date(f.due) < Date.now()).length;
     const week = open.filter((f) => new Date(f.due) >= Date.now() && new Date(f.due) - Date.now() < 7 * 24 * 3600 * 1000).length;
-    $('summary').textContent = `${late ? late + ' vencidas sin marcar · ' : ''}${week} vencen en 7 días · ${(data.clients || []).length} clientes · actualizado ${fmtDate(data.updatedAt)}`;
+    $('summary').textContent = `${late ? late + ' vencidas sin marcar · ' : ''}${week} vencen en 7 días · ${(data.clients || []).length} clientes · ${updated}`;
     renderWork(data);
   } else {
-    $('summary').textContent = `${school.length} tareas de la escuela · ${soon} vencen pronto · actualizado ${fmtDate(data.updatedAt)}`;
+    $('summary').textContent = `${school.length} tareas de la escuela · ${soon} vencen pronto · ${updated}`;
   }
 
   const schoolErr = [data.errors?.classroom, data.errors?.moodle].filter(Boolean).join(' · ');
@@ -639,6 +644,10 @@ $('save-reminders').onclick = async () => {
   renderStatus();
 };
 
+// Mientras llegan los primeros datos cada tarjeta dice "Cargando…" (y no "Conecta esta fuente").
+for (const id of ['school', 'events', 'tasks', 'sheet', 'emails', 'files', 'designs', 'spotify-recent', 'notion-recent']) {
+  $(id).replaceChildren(li('Cargando…', 'muted loading'));
+}
 api.onData(render);
 api.getData().then(render);
 renderStatus();
