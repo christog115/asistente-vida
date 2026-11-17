@@ -66,7 +66,9 @@ input {
 input[type=checkbox], input[type=radio] { width: auto; }
 select { font: inherit; padding: 7px 10px; border-radius: 8px; width: 100%; border: 1px solid var(--border); background: var(--bg); color: var(--text); }
 form { display: grid; gap: 8px; }
-#message { grid-column: 1 / -1; }
+#message, .board-message { grid-column: 1 / -1; }
+.board-message { margin: 0; }
+.board-message:empty { display: none; }
 
 .briefing p { white-space: pre-wrap; margin: 0; }
 .chat-view { grid-template-columns: 1fr; }
@@ -107,3 +109,19 @@ form { display: grid; gap: 8px; }
 .error:empty { display: none; }
 .devices-row { flex-direction: row !important; justify-content: space-between; align-items: center; gap: 8px; }
 .devices-row button { padding: 4px 10px; }
+
+/* Perfiles: lo marcado con data-solo solo aparece en ese perfil. */
+body[data-perfil="contador"] [data-solo="personal"],
+body:not([data-perfil="contador"]) [data-solo="contador"] { display: none; }
+.small-note { margin: -4px 0 8px; font-size: 12px; }
+.checks { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 12px; }
+.checks label { margin: 2px 0; }
+.list li.done small, .list li.done span { color: var(--muted); text-decoration: line-through; }
+.row-main { display: flex; flex-direction: column; min-width: 0; }
+.row-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.client-block { padding: 8px 0; border-top: 1px solid var(--border); }
+.client-block:first-child { border-top: 0; }
+.client-block ul { list-style: none; margin: 4px 0 0; padding: 0; }
+.client-block li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 3px 0; border: 0; flex-direction: row; }
+.client-block button, .row-actions button { padding: 3px 10px; }
+#pending-form select { flex: 0 0 35%; }
