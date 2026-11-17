@@ -1,6 +1,6 @@
 // Proceso principal: ventana del tablero, ícono en la bandeja, arranque con
 // el sistema, actualización periódica y recordatorios.
-const { app, BrowserWindow, Tray, Menu, ipcMain, shell, nativeImage, session, globalShortcut, Notification, dialog } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, shell, nativeImage, session, globalShortcut, Notification, dialog, powerMonitor } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const google = require('./src/google');
@@ -231,6 +231,8 @@ ipcMain.handle('update-install', () => { quitting = true; updater.installNow(); 
 ipcMain.handle('set-sheet-url', (_e, url) => { store.set('sheetUrl', url); return refresh(); });
 ipcMain.handle('ai-set-key', (_e, which, key) => ai.setKey(which, key));
 ipcMain.handle('ai-set-provider', (_e, p) => ai.setProvider(p));
+ipcMain.handle('openjarvis-set', (_e, changes) => ai.setOpenJarvis(changes));
+ipcMain.handle('openjarvis-test', () => ai.testOpenJarvis());
 ipcMain.handle('ai-chat', async (_e, history, opts) => {
   // Si la última frase es una orden (recordatorio, evento, abrir un programa) se ejecuta en vez de charlar.
   const last = history[history.length - 1];
@@ -338,11 +340,22 @@ app.whenReady().then(() => {
   // En modo estudio los resúmenes y avisos no hablan (las notificaciones siguen apareciendo).
   const speakUnlessStudying = (text) => { if (!study.active()) speakOut(text); };
   setInterval(() => study.tick(speakOut), 15 * 1000);
+  // Devuelve false si no pudo hablar (voz apagada o modo estudio) para no marcarlo como dicho.
+  const trySpeak = (text) => {
+    if (!win || !voice.status().enabled || study.active()) return false;
+    win.webContents.send('voice-speak', text);
+    return true;
+  };
   setInterval(() => {
     reminders.tick(latest, showWindow, speakUnlessStudying);
-    // Solo se dice si la voz está activada y no se estudia; si no, se espera al siguiente minuto.
-    if (voice.status().enabled && !study.active()) reminders.morning(latest, speakOut);
+    reminders.startup(latest, showWindow, trySpeak);
   }, 60 * 1000);
+  // Al despertar de la suspensión o desbloquear (otro día) actualiza y da el resumen del día.
+  const onAwake = () => {
+    if (store.get('startupSummary') !== new Date().toDateString()) reminders.awake(refresh());
+  };
+  powerMonitor.on('resume', onAwake);
+  powerMonitor.on('unlock-screen', onAwake);
 });
 
 app.on('activate', showWindow);
