@@ -10,9 +10,19 @@ const study = require('./study');
 const spotify = require('./spotify');
 
 // Solo se gasta una consulta extra si la frase parece una orden.
-const LOOKS_LIKE_COMMAND = /(^|[^a-z])(recuerda(me)?|avisa(me)?|agenda|agendar|crea|crear|programa|pon(me)?|abre|abreme|abrir|inicia|ejecuta|lanza|alarma|temporizador|cancela|borra|que recordatorios|pausa(r)?|reanuda(r)?|siguiente cancion|cancion siguiente|cancion anterior|salta|agrega(me)?|anade(me)?|anota(me)?|apunta(me)?|a mis pendientes|a mi lista|busca(me)?|encuentra(me)?|que me (mando|escribio|envio)|notion|modo estudio|clima|temperatura|va a llover|llover|llueve|hace frio|hace calor|paraguas|cuanto (tardo|tiempo|me tardo|hago)|como llego|tiempo (de|en) (llegar|camino)|ruta a|a estudiar|voy a estudiar|termine de estudiar|termina el modo|cada\s+\w+\s+(hora|minuto)s?|en\s+\d+\s+(minuto|hora)s?)/;
+const LOOKS_LIKE_COMMAND = /(^|[^a-z])(recuerda(me)?|avisa(me)?|agenda|agendar|crea|crear|programa|pon(me)?|abre|abreme|abrir|inicia|ejecuta|lanza|alarma|temporizador|cancela|borra|que recordatorios|pausa(r)?|reanuda(r)?|siguiente cancion|cancion siguiente|cancion anterior|salta|agrega(me)?|anade(me)?|anota(me)?|apunta(me)?|a mis pendientes|a mi lista|busca(me)?|encuentra(me)?|que me (mando|escribio|envio)|notion|modo estudio|clima|temperatura|va a llover|llover|llueve|hace frio|hace calor|paraguas|cuanto (tardo|tiempo|me tardo|hago)|como llego|tiempo (de|en) (llegar|camino)|ruta a|ya (presente|declare|pague|envie|mande)|le falta|les falta|falta que|a estudiar|voy a estudiar|termine de estudiar|termina el modo|cada\s+\w+\s+(hora|minuto)s?|en\s+\d+\s+(minuto|hora)s?)/;
 const weather = require('./weather');
 const notion = require('./notion');
+const profile = require('./profile');
+const clients = require('./clients');
+const fiscal = require('./fiscal');
+const store = require('./store');
+
+// Solo en el perfil Contador.
+const WORK_ACTIONS = () => profile.get() !== 'contador' ? '' : `
+{"action":"client_pending","client":"nombre del cliente","text":"lo que falta, frase corta"}  // "anota que a Pérez le falta el estado de cuenta"
+{"action":"fiscal_done","client":"nombre del cliente","obligation":"mensual|diot|balanza|imss|infonavit|anual"}  // "ya presenté la DIOT de Pérez", "ya pagué el IMSS de Acme"
+Clientes: ${clients.list().map((c) => c.name).join(', ') || '(ninguno)'}.`;
 const plain = (t) => String(t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
 const SYSTEM = (now) => `Conviertes la orden del usuario en una acción para su asistente. Responde SOLO con un JSON, sin texto extra.
@@ -33,7 +43,7 @@ Acciones:
 {"action":"list_reminders"}
 {"action":"cancel_reminders"}
 {"action":"open_app","name":"nombre del programa"}
-{"action":"none"}  // si no es una orden de estas (es una pregunta o charla)
+{"action":"none"}  // si no es una orden de estas (es una pregunta o charla)${WORK_ACTIONS()}
 Programas que puede abrir: ${apps.names().join(', ')}.`;
 
 function parseJson(text) {
@@ -136,6 +146,23 @@ async function run(a, now) {
     case 'cancel_reminders': {
       const n = alarms.clear();
       return n ? `Listo, borré ${n} recordatorio${n === 1 ? '' : 's'}.` : 'No tenías recordatorios.';
+    }
+    case 'client_pending': {
+      if (profile.get() !== 'contador') return null;
+      const c = clients.byName(a.client);
+      if (!c) return `No encontré al cliente "${a.client || ''}". Agrégalo en Conexiones → Clientes.`;
+      clients.addPending(c.id, a.text);
+      return `Listo, anoté que a ${c.name} le falta: ${String(a.text).slice(0, 100)}.`;
+    }
+    case 'fiscal_done': {
+      if (profile.get() !== 'contador') return null;
+      const c = clients.byName(a.client);
+      if (!c) return `No encontré al cliente "${a.client || ''}".`;
+      // La más próxima sin marcar de esa obligación (la vencida más vieja primero).
+      const f = fiscal.deadlines([c], store.get('fiscalDone') || {}).find((x) => x.obligation === a.obligation && !x.done);
+      if (!f) return `No veo pendiente ${fiscal.OBLIGATIONS[a.obligation] ? 'esa obligación' : 'nada así'} para ${c.name}.`;
+      store.set('fiscalDone', { ...(store.get('fiscalDone') || {}), [f.id]: new Date().toISOString() });
+      return `Listo, marqué como presentada: ${f.title}, de ${c.name}.`;
     }
     case 'open_app': {
       const name = await apps.open(a.name);
