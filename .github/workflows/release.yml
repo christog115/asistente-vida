@@ -19,6 +19,16 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - name: Revisar que la etiqueta coincida con package.json
+        shell: bash
+        run: |
+          # Si no coinciden, electron-builder publica la versión vieja y la nueva queda vacía.
+          want="${GITHUB_REF_NAME#v}"
+          have="$(node -p "require('./package.json').version")"
+          if [ "$want" != "$have" ]; then
+            echo "::error::La etiqueta es $GITHUB_REF_NAME pero package.json dice $have. Sube la versión en package.json y vuelve a etiquetar."
+            exit 1
+          fi
       - run: npm ci
       - name: Construir y publicar
         shell: bash
