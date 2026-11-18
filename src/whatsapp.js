@@ -229,14 +229,15 @@ async function sendFile(file) {
   return path.basename(file);
 }
 
-function pin(loc, name) {
-  return { location: { degreesLatitude: loc.lat, degreesLongitude: loc.lon, name, address: loc.accuracy ? `Precisión de unos ${loc.accuracy} m` : loc.place ? `Aproximada (${loc.place})` : undefined } };
+// Solo coordenadas: con nombre o dirección, Maps busca ese texto en vez de abrir el punto exacto.
+function pin(loc) {
+  return { location: { degreesLatitude: loc.lat, degreesLongitude: loc.lon } };
 }
 
 async function sendLocation() {
   needLinked();
   const loc = await location.current();
-  await sendLinked(pin(loc, loc.source === 'ip' ? 'Mi PC (ubicación aproximada)' : 'Mi PC'));
+  await sendLinked(pin(loc));
   return loc;
 }
 
@@ -288,7 +289,7 @@ async function sendLocationTo(name) {
   if (!hit) throw new Error(`${c.name} (+${c.number}) no aparece en WhatsApp; revisa el número.`);
   const loc = await location.current();
   sentToday.n++;
-  await sock.sendMessage(hit.jid, pin(loc, loc.source === 'ip' ? 'Mi ubicación (aproximada)' : 'Mi ubicación'));
+  await sock.sendMessage(hit.jid, pin(loc));
   return { contact: c.name, loc };
 }
 
