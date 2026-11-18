@@ -15,6 +15,7 @@
     <span id="voice-pill" class="voice-pill hidden"></span>
     <nav>
       <button data-view="tablero" class="tab active">Tablero</button>
+      <button data-view="productividad" class="tab">Productividad</button>
       <button data-view="asistente" class="tab">Asistente</button>
       <button data-view="ajustes" class="tab">Conexiones</button>
       <button id="refresh" title="Actualizar">↻</button>
@@ -96,6 +97,134 @@
       <p id="spotify-now" class="muted"></p>
       <ul id="spotify-recent" class="list"></ul>
     </section>
+  </main>
+
+  <main id="productividad" class="view hidden">
+    <section class="card wide">
+      <div class="pv-head">
+        <h2>Hoy</h2>
+        <span id="pv-now" class="pv-chip"></span>
+      </div>
+      <p id="pv-today-text" class="pv-big"></p>
+      <div class="pv-bar pv-bar-big"><div id="pv-today-fill" class="pv-fill trabajo"></div></div>
+      <p id="pv-today-meta" class="muted"></p>
+      <div class="pv-row">
+        <input id="pv-sw-note" placeholder="¿Qué vas a hacer en papel? (opcional)" autocomplete="off">
+        <button id="pv-sw-start">Iniciar cronómetro</button>
+        <button id="pv-sw-stop" class="hidden">Detener cronómetro</button>
+        <span id="pv-sw-state" class="muted"></span>
+      </div>
+      <p id="pv-monitor" class="muted"></p>
+    </section>
+
+    <section class="card wide">
+      <div class="pv-head">
+        <button id="pv-prev" class="ghost" title="Semana anterior">‹</button>
+        <h2 id="pv-week-title">Semana</h2>
+        <button id="pv-next" class="ghost" title="Semana siguiente">›</button>
+        <select id="pv-week-pick" title="Ir a otra semana"></select>
+      </div>
+      <div id="pv-kpis" class="pv-kpis"></div>
+      <div id="pv-days" class="pv-days"></div>
+      <p class="muted pv-legend"><span class="pv-dot trabajo"></span>Trabajo <span class="pv-dot entretenimiento"></span>Entretenimiento <span class="pv-dot escuela"></span>Escuela <span class="pv-goal-mark"></span>Meta del día</p>
+    </section>
+
+    <section class="card">
+      <h2>Dónde trabajaste</h2>
+      <ul id="pv-top-trabajo" class="list"></ul>
+    </section>
+    <section class="card">
+      <h2>Dónde se fue el tiempo</h2>
+      <ul id="pv-top-entretenimiento" class="list"></ul>
+    </section>
+    <section class="card">
+      <h2>Investigación contra producción</h2>
+      <div class="pv-bar"><div id="pv-research" class="pv-fill investigacion"></div><div id="pv-production" class="pv-fill produccion"></div></div>
+      <p id="pv-kinds" class="muted"></p>
+      <p id="pv-hours" class="muted"></p>
+    </section>
+    <section class="card wide">
+      <h2>Lo que no reconocí</h2>
+      <p class="muted">Apps y sitios que no están en ninguna categoría. Un clic y quedan clasificados.</p>
+      <ul id="pv-unknown" class="list"></ul>
+    </section>
+
+    <section class="card wide">
+      <div class="pv-head">
+        <h2>Reporte de la semana</h2>
+        <button id="pv-report-make" class="ghost">Generar ahora</button>
+      </div>
+      <p id="pv-report-meta" class="muted"></p>
+      <div id="pv-report" class="pv-report"></div>
+    </section>
+
+    <section class="card wide">
+      <h2>Ajustes de productividad</h2>
+      <p class="muted">Todo se guarda solo en esta PC. Solo se guarda el nombre de la app o del sitio, nunca lo que escribes ni el título completo de la ventana. El historial se puede ver aquí pero la app no lo borra.</p>
+      <form id="pv-settings" class="pv-settings">
+        <label class="pv-wide">Tu porqué (por qué haces esto; kara te lo va a recordar)
+          <textarea id="pv-why" rows="2" maxlength="300" placeholder="Ej.: quiero vivir de mis juegos y mis dibujos y no depender de nadie"></textarea>
+        </label>
+        <fieldset class="pv-wide">
+          <legend>Meta mínima de trabajo (minutos)</legend>
+          <div class="pv-goals" id="pv-goals"></div>
+        </fieldset>
+        <label>Pausar el reloj tras (min sin actividad) <input id="pv-afk" type="number" min="1" max="60"></label>
+        <label>Recordarme cada (min) <input id="pv-nag-every" type="number" min="5" max="240"></label>
+        <label class="pv-check"><input id="pv-nag" type="checkbox"> Recordatorios hasta cumplir la meta</label>
+        <label class="pv-check"><input id="pv-nag-speak" type="checkbox"> Que kara los diga en voz alta</label>
+        <label class="pv-check"><input id="pv-ai-phrases" type="checkbox"> Frases nuevas con la IA cada día</label>
+        <label class="pv-check"><input id="pv-force" type="checkbox"> Ventana que me obliga a trabajar</label>
+        <label>Ventana forzada desde <input id="pv-force-from" placeholder="21:30"></label>
+        <label>El día termina a las <input id="pv-day-end" placeholder="23:30"></label>
+        <label>El día empieza a las <input id="pv-day-start" placeholder="04:00"></label>
+        <label>Pausas de emergencia por día <input id="pv-snoozes" type="number" min="0" max="5"></label>
+        <label>Duración de cada pausa (min) <input id="pv-snooze-min" type="number" min="1" max="30"></label>
+        <label>Reporte semanal el
+          <select id="pv-report-day"></select>
+        </label>
+        <label>a las <input id="pv-report-time" placeholder="21:00"></label>
+        <label class="pv-check"><input id="pv-school" type="checkbox"> Contar escuela (Classroom y Moodle)</label>
+        <label>Escuela empieza el <input id="pv-school-start" type="date"></label>
+        <label>Meta de escuela (min por día) <input id="pv-school-goal" type="number" min="0" max="600"></label>
+        <label class="pv-check"><input id="pv-enabled" type="checkbox"> Monitor encendido</label>
+        <div class="pv-wide pv-row">
+          <button type="submit">Guardar</button>
+          <button type="button" id="pv-test-nag" class="ghost">Probar recordatorio</button>
+          <button type="button" id="pv-test-force" class="ghost">Probar ventana forzada</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="card wide">
+      <div class="pv-head">
+        <h2>Categorías y apps</h2>
+        <button id="pv-rules-reset" class="ghost">Volver a las de fábrica</button>
+      </div>
+      <p class="muted">Programas = nombre del proceso sin .exe (lo ves en el Administrador de tareas, pestaña Detalles). Páginas = palabras del título de la pestaña del navegador. Carpetas = parte de la ruta del programa (por ejemplo steamapps\common cuenta cualquier juego de Steam). Para cambiar una regla, guárdala otra vez con el mismo nombre.</p>
+      <form id="pv-rule-form" class="pv-row">
+        <input id="pv-rule-label" placeholder="Nombre (ej.: Aseprite)" autocomplete="off">
+        <select id="pv-rule-cat">
+          <option value="trabajo">Trabajo</option>
+          <option value="entretenimiento">Entretenimiento</option>
+          <option value="escuela">Escuela</option>
+          <option value="neutral">No contar</option>
+        </select>
+        <select id="pv-rule-kind">
+          <option value="produccion">Producción</option>
+          <option value="investigacion">Investigación</option>
+        </select>
+        <input id="pv-rule-procs" placeholder="Programas (aseprite, krita)" autocomplete="off">
+        <input id="pv-rule-titles" placeholder="Páginas (itch.io, artstation)" autocomplete="off">
+        <input id="pv-rule-paths" placeholder="Carpetas (opcional)" autocomplete="off">
+        <button type="submit">Guardar regla</button>
+      </form>
+      <details>
+        <summary id="pv-rules-count">Ver todas las reglas</summary>
+        <div id="pv-rules" class="pv-rules"></div>
+      </details>
+    </section>
+    <p id="pv-message" class="muted"></p>
   </main>
 
   <main id="asistente" class="view chat-view hidden">
@@ -371,6 +500,7 @@
   </main>
 
   <script src="app.js"></script>
+  <script src="productividad.js"></script>
   <script src="../node_modules/vosk-browser/dist/vosk.js"></script>
   <script src="wake.js"></script>
   <script src="voice.js"></script>

@@ -1,0 +1,24 @@
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: #0b0d10; color: #f1f3f5;
+  font: 16px/1.5 "Segoe UI", system-ui, sans-serif;
+  display: flex; align-items: center; justify-content: center;
+  user-select: none;
+}
+main { max-width: 760px; padding: 32px; text-align: center; }
+.kicker { color: #f87171; text-transform: uppercase; letter-spacing: .12em; font-size: 13px; margin: 0 0 8px; }
+h1 { font-size: 56px; margin: 0; line-height: 1.1; }
+.meta { color: #9aa0a6; margin: 12px 0 32px; }
+blockquote { font-size: 26px; line-height: 1.35; margin: 0 0 16px; font-weight: 600; }
+.why { color: #fbbf24; margin: 0 0 40px; }
+.actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+button {
+  font: inherit; padding: 14px 22px; border-radius: 10px; cursor: pointer;
+  border: 1px solid #3b4250; background: #1a1d23; color: #f1f3f5;
+}
+button.primary { background: #2563eb; border-color: #2563eb; font-weight: 600; }
+button:hover { filter: brightness(1.15); }
+.hint { color: #6b7280; font-size: 13px; margin: 16px 0 48px; }
+.snooze { background: transparent; border-color: transparent; color: #6b7280; font-size: 13px; padding: 6px 10px; }
+.snooze:disabled { cursor: default; }
