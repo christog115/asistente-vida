@@ -114,14 +114,38 @@ Spotify también pide tu propia app (gratis, solo lectura; no hay secreto, solo 
 
 Muestra lo que suena ahora y las últimas 8 canciones (en el tablero y en la app del celular). Con **Spotify Premium** también controla la reproducción por voz ("pausa la música", "sigue", "siguiente canción", "canción anterior"); si ya tenías Spotify conectado, toca **Desconectar** y **Conectar** una vez para dar ese permiso. Spotify puede pedir que tu cuenta esté agregada a la app mientras está en modo desarrollo (**User Management** en el dashboard).
 
-## WhatsApp (avisos)
+## WhatsApp (avisos, archivos y ubicación)
 
-Usa la API oficial de Meta (WhatsApp Cloud API), gratis para este uso. Solo manda avisos a tu número; no lee tus chats.
+Hay dos formas; si tienes las dos se usa la primera.
+
+### Tu número personal (vinculado, sirve para archivos y ubicación)
+
+La app se une a tu WhatsApp como un **dispositivo vinculado**, igual que WhatsApp Web, con la librería abierta [Baileys](https://github.com/WhiskeySockets/Baileys). No necesitas Docker ni servidor: corre dentro de la app.
+
+1. **Conexiones → WhatsApp → Vincular mi WhatsApp**.
+2. En el teléfono: WhatsApp → **Ajustes → Dispositivos vinculados → Vincular un dispositivo** y escanea el QR.
+3. Toca **Enviar prueba**: te llega a tu propio chat ("Tú").
+
+Qué puedes hacer (todo llega a tu chat "Tú"):
+- Los avisos de siempre (resumen del día, tareas por vencer, recordatorios de voz, productividad).
+- **Enviar un archivo…** (botón, eliges con el selector) o por voz/chat: "mándame por WhatsApp el archivo del reporte de física". Por voz solo busca en Escritorio, Documentos y Descargas (hasta 4 niveles), manda el más reciente que coincida, máximo 100 MB, y nunca manda claves, certificados, contraseñas ni la configuración de la app.
+- **Mandar la ubicación de mi PC** (un pin) o "mándame mi ubicación". La lee del servicio de ubicación de Windows (Configuración → Privacidad → Ubicación, con "apps de escritorio" permitido). Si Windows no la da, y solo si lo activas con la casilla, usa la ubicación aproximada por IP (nivel ciudad; manda tu IP a ipwho.is).
+- **Mandar tu ubicación a otra persona**: guarda contactos (nombre y número) en Conexiones → WhatsApp y toca **Mandar mi ubicación** (pide confirmación) o di "mándale mi ubicación a mamá". Es **un solo pin, una sola vez**: no se actualiza ni sigue tu ubicación. Solo funciona con contactos que guardaste tú (nunca con un número que aparezca en un texto o que invente la IA), el número debe estar en WhatsApp, y hay un tope de 20 envíos a otras personas por día.
+
+Seguridad y riesgos, en claro:
+- **No es una API oficial.** La política de WhatsApp no permite clientes no oficiales: pueden restringir el número y un cambio de protocolo puede romperla hasta que se actualice la librería. Por eso la app manda a **tu propio chat** y, solo si tú lo pides, el pin de ubicación a los contactos que guardaste; **no lee, guarda ni procesa ninguna conversación** (ignora todo mensaje entrante). Mandar mensajes a otras personas por este medio sube un poco el riesgo de restricción: úsalo poco.
+- La sesión se guarda en `whatsapp-sesion.bin`, **cifrada con el cifrado del sistema** (DPAPI en Windows): copiar ese archivo a otra PC no sirve. No entra en la copia de seguridad; en otra PC hay que vincular de nuevo.
+- Para quitarla: **Desvincular** en la app, o en el teléfono Dispositivos vinculados → cerrar sesión.
+- Quien controle tu PC desbloqueada podría mandarte archivos de Escritorio/Documentos/Descargas a tu chat, y mandar tu ubicación a tus contactos guardados, pero no archivos a otros.
+
+### API oficial de Meta (alternativa, solo avisos de texto)
+
+Usa la WhatsApp Cloud API, gratis para este uso, sin riesgo de restricción pero sin archivos ni ubicación. Solo manda avisos a tu número.
 
 1. Entra a <https://developers.facebook.com>, crea una app de tipo **Business** y agrega el producto **WhatsApp**.
 2. En **WhatsApp → Configuración de la API** verás un número de prueba: copia su **ID del número de teléfono** y agrega tu número en "Para" (te llega un código por WhatsApp).
 3. Crea un **token permanente** (Configuración del negocio → Usuarios del sistema → generar token con el permiso `whatsapp_business_messaging`). El token temporal de la pantalla dura 24 h.
-4. En la app: **Conexiones → WhatsApp** → pega token, ID y tu número con lada (ej. `523312345678`) → **Guardar** → **Enviar prueba**.
+4. En la app: **Conexiones → WhatsApp → Solo avisos con la API oficial** → pega token, ID y tu número con lada (ej. `523312345678`) → **Guardar** → **Enviar prueba**.
 
 Importante: WhatsApp solo deja mandar texto libre durante 24 h después de que tú le escribes al número de la API. Para recibir avisos cada día, mándale un "hola" a ese número de vez en cuando (o aprueba una plantilla en Meta). La prueba usa la plantilla `hello_world` y siempre llega.
 

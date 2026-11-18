@@ -16,6 +16,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",
     "@google/genai": "^2.29.1",
+    "@whiskeysockets/baileys": "7.0.0-rc14",
     "adm-zip": "^0.5.18",
     "electron-updater": "^6.8.11",
     "googleapis": "^185.0.0",
