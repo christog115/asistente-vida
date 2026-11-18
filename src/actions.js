@@ -10,7 +10,9 @@ const study = require('./study');
 const spotify = require('./spotify');
 
 // Solo se gasta una consulta extra si la frase parece una orden.
-const LOOKS_LIKE_COMMAND = /(^|[^a-z])(recuerda(me)?|avisa(me)?|agenda|agendar|crea|crear|programa|pon(me)?|abre|abreme|abrir|inicia|ejecuta|lanza|alarma|temporizador|cancela|borra|que recordatorios|pausa(r)?|reanuda(r)?|siguiente cancion|cancion siguiente|cancion anterior|salta|agrega(me)?|anade(me)?|anota(me)?|apunta(me)?|a mis pendientes|a mi lista|busca(me)?|encuentra(me)?|que me (mando|escribio|envio)|notion|modo estudio|clima|temperatura|va a llover|llover|llueve|hace frio|hace calor|paraguas|cuanto (tardo|tiempo|me tardo|hago)|como llego|tiempo (de|en) (llegar|camino)|ruta a|ya (presente|declare|pague|envie|mande)|le falta|les falta|falta que|a estudiar|voy a estudiar|termine de estudiar|termina el modo|cada\s+\w+\s+(hora|minuto)s?|en\s+\d+\s+(minuto|hora)s?)/;
+const LOOKS_LIKE_COMMAND = /(^|[^a-z])(recuerda(me)?|avisa(me)?|agenda|agendar|crea|crear|programa|pon(me)?|abre|abreme|abrir|inicia|ejecuta|lanza|alarma|temporizador|cancela|borra|que recordatorios|pausa(r)?|reanuda(r)?|siguiente cancion|cancion siguiente|cancion anterior|salta|agrega(me)?|anade(me)?|anota(me)?|apunta(me)?|a mis pendientes|a mi lista|busca(me)?|encuentra(me)?|que me (mando|escribio|envio)|manda(me)?|envia(me)?|pasa(me)?|comparte|ubicacion|donde (esta|estoy)|notion|modo estudio|clima|temperatura|va a llover|llover|llueve|hace frio|hace calor|paraguas|cuanto (tardo|tiempo|me tardo|hago)|como llego|tiempo (de|en) (llegar|camino)|ruta a|ya (presente|declare|pague|envie|mande)|le falta|les falta|falta que|a estudiar|voy a estudiar|termine de estudiar|termina el modo|cada\s+\w+\s+(hora|minuto)s?|en\s+\d+\s+(minuto|hora)s?)/;
+const whatsapp = require('./whatsapp');
+const sendFiles = require('./send-files');
 const weather = require('./weather');
 const notion = require('./notion');
 const profile = require('./profile');
@@ -40,6 +42,9 @@ Acciones:
 {"action":"route","to":"destino: nombre guardado (escuela, trabajo) o dirección"}  // "cuánto tardo a la escuela", "cómo llego a..."
 {"action":"notion_add","title":"texto a anotar, frase corta"}  // "anota en Notion...", "agrega a Notion..."
 {"action":"notion_search","query":"palabras a buscar en Notion"}  // "busca en Notion..."
+{"action":"whatsapp_location","minutes":null}  // "mándame mi ubicación" (minutes null); "comparte mi ubicación en tiempo real" o "por 2 horas" = minutes en minutos (60 si no dijo cuánto)
+{"action":"whatsapp_location_stop"}  // "deja de compartir mi ubicación"
+{"action":"whatsapp_file","query":"palabras del nombre del archivo"}  // "mándame por WhatsApp el archivo del reporte"
 {"action":"list_reminders"}
 {"action":"cancel_reminders"}
 {"action":"open_app","name":"nombre del programa"}
@@ -138,6 +143,26 @@ async function run(a, now) {
       const r = await notion.search(q, 5);
       if (!r.length) return q ? 'No encontré nada en Notion con eso.' : 'No hay páginas compartidas con la integración.';
       return `En Notion encontré: ${r.slice(0, 3).map((p) => p.title).join(', ')}` + (r.length > 3 ? ` y ${r.length - 3} más.` : '.');
+    }
+    case 'whatsapp_location': {
+      if (!whatsapp.linkedReady()) return 'Para mandar tu ubicación vincula primero tu WhatsApp en Conexiones.';
+      if (Number(a.minutes) > 0) {
+        const min = await whatsapp.shareLocation(a.minutes);
+        return `Listo, te voy mandando la ubicación de la PC por ${span(min * 60000)}.`;
+      }
+      const loc = await whatsapp.sendLocation();
+      return loc.source === 'ip' ? 'Te mandé la ubicación aproximada de la PC (por IP).' : 'Te mandé la ubicación de la PC a tu WhatsApp.';
+    }
+    case 'whatsapp_location_stop':
+      return whatsapp.stopSharing() ? 'Listo, dejé de compartir la ubicación.' : 'No estaba compartiendo la ubicación.';
+    case 'whatsapp_file': {
+      const q = String(a.query || '').trim();
+      if (!q) return 'No entendí qué archivo mandar; dímelo otra vez.';
+      if (!whatsapp.linkedReady()) return 'Para mandar archivos vincula primero tu WhatsApp en Conexiones.';
+      const hits = sendFiles.find(q);
+      if (!hits.length) return 'No encontré ese archivo en Escritorio, Documentos ni Descargas.';
+      await whatsapp.sendFile(hits[0].file);
+      return `Te mandé "${hits[0].name}" a tu WhatsApp` + (hits.length > 1 ? ` (el más reciente de ${hits.length} que coinciden).` : '.');
     }
     case 'list_reminders': {
       const l = alarms.list();

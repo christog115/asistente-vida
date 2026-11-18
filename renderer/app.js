@@ -298,7 +298,7 @@ async function renderStatus() {
   $('spotify-status').textContent = s.spotify === 'sin-credenciales' ? 'Falta el Client ID de Spotify' : STATUS_TEXT[s.spotify];
   $('spotify-connect').classList.toggle('hidden', s.spotify !== 'desconectado');
   $('spotify-disconnect').classList.toggle('hidden', s.spotify === 'sin-credenciales');
-  $('whatsapp-status').textContent = { conectado: 'Conectado', pausado: 'Pausado', desconectado: 'Sin conectar' }[s.whatsapp];
+  renderWhatsapp(s.whatsapp);
   renderUpdate(s.update);
   renderAlarms(s.alarms); renderPlaces(s.places || []); renderStudy(s.study);
   renderApps(s.apps);
@@ -516,6 +516,61 @@ $('whatsapp-form').onsubmit = (e) => {
   run(async () => { await api.whatsappSave(cfg); }, 'WhatsApp guardado. Toca "Enviar prueba".');
 };
 $('whatsapp-test').onclick = () => run(() => api.whatsappTest(), 'Prueba enviada: revisa tu WhatsApp.');
+$('wa-test').onclick = () => run(() => api.whatsappTest(), 'Prueba enviada: revisa tu chat "Tú" en WhatsApp.');
+
+// WhatsApp vinculado: el QR se renueva solo; se consulta cada 2 s mientras no esté listo.
+let waTimer = null;
+function renderWhatsapp(w) {
+  const l = w.linked;
+  const open = l.state === 'open';
+  $('whatsapp-status').textContent = open ? 'Conectado (número vinculado)'
+    : l.state === 'qr' ? 'Esperando que escanees el código'
+    : l.state === 'connecting' ? (l.number ? 'Reconectando…' : 'Conectando…')
+    : { conectado: 'Conectado (API oficial)', pausado: 'Pausado', desconectado: 'Sin conectar' }[w.cloud];
+  $('wa-cloud-status').textContent = { conectado: 'Conectado', pausado: 'Pausado', desconectado: 'Sin conectar' }[w.cloud];
+  $('wa-link').classList.toggle('hidden', open || l.state === 'qr');
+  $('wa-qr').classList.toggle('hidden', l.state !== 'qr');
+  if (l.qr) $('wa-qr-img').src = l.qr;
+  $('wa-link-note').textContent = l.error || '';
+  $('wa-tools').classList.toggle('hidden', !open);
+  $('wa-number').textContent = l.number ? '+' + l.number : '';
+  $('wa-ip').checked = !!w.locationIp;
+  $('wa-share-location').classList.toggle('hidden', !!w.sharing);
+  $('wa-stop-sharing').classList.toggle('hidden', !w.sharing);
+  $('wa-sharing').textContent = w.sharing ? `Compartiendo la ubicación de tu PC: quedan ${w.sharing.minutesLeft} min. Va mandando un pin nuevo cuando te mueves.` : '';
+  clearTimeout(waTimer);
+  if (l.state === 'qr' || (l.state === 'connecting' && !l.number)) waTimer = setTimeout(pollWhatsapp, 2000);
+}
+async function pollWhatsapp() {
+  try { renderWhatsapp({ ...(await api.getStatus()).whatsapp }); } catch {}
+}
+$('wa-link').onclick = async () => {
+  try { await api.whatsappLinkStart(); } catch (err) { msg.textContent = 'Error: ' + cleanError(err); }
+  pollWhatsapp();
+};
+$('wa-link-cancel').onclick = async () => { await api.whatsappLinkCancel(); pollWhatsapp(); };
+$('wa-unlink').onclick = async () => {
+  if (!confirm('¿Desvincular tu WhatsApp de esta app? Dejarás de recibir avisos y no podrás mandar archivos hasta vincular otra vez.')) return;
+  await run(() => api.whatsappUnlink(), 'WhatsApp desvinculado.');
+};
+$('wa-send-file').onclick = async () => {
+  msg.textContent = 'Eligiendo archivo…';
+  try {
+    const name = await api.whatsappSendFile();
+    msg.textContent = name ? `Te mandé "${name}" a tu WhatsApp.` : 'Cancelado.';
+  } catch (err) { msg.textContent = 'Error: ' + cleanError(err); }
+};
+$('wa-send-location').onclick = async () => {
+  msg.textContent = 'Buscando la ubicación de la PC…';
+  try { await api.whatsappSendLocation(); msg.textContent = 'Te mandé la ubicación de tu PC.'; } catch (err) { msg.textContent = 'Error: ' + cleanError(err); }
+};
+$('wa-share-location').onclick = async () => {
+  msg.textContent = 'Buscando la ubicación de la PC…';
+  try { await api.whatsappShareLocation(60); msg.textContent = 'Compartiendo la ubicación por 1 hora.'; } catch (err) { msg.textContent = 'Error: ' + cleanError(err); }
+  renderStatus();
+};
+$('wa-stop-sharing').onclick = async () => { await api.whatsappStopSharing(); msg.textContent = 'Dejé de compartir la ubicación.'; renderStatus(); };
+$('wa-ip').onchange = (e) => api.whatsappLocationIp(e.target.checked);
 $('whatsapp-disconnect').onclick = () => run(() => api.whatsappDisconnect(), 'WhatsApp desconectado.');
 function describeRepeat(ms) {
   const min = Math.round(ms / 60000);

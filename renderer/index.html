@@ -339,16 +339,46 @@
 
     <section class="card">
       <h2>WhatsApp</h2>
-      <p class="muted">Recibe el resumen del día y los avisos de tareas por WhatsApp (solo avisos a tu número, no lee tus chats). Usa la API oficial de Meta; los pasos están en el README.</p>
+      <p class="muted">Vincula tu número personal (como WhatsApp Web) para recibir avisos y mandarte archivos y la ubicación de tu PC. Todo llega a tu propio chat ("Tú"); la app no manda mensajes a nadie más ni lee tus conversaciones.</p>
       <p>Estado: <strong id="whatsapp-status"></strong></p>
-      <form id="whatsapp-form">
-        <input id="wa-token" type="password" placeholder="Token de acceso" autocomplete="off">
-        <input id="wa-phone-id" placeholder="ID del número de teléfono (de Meta)" autocomplete="off">
-        <input id="wa-to" placeholder="Tu número con lada, ej. 523312345678" autocomplete="off">
-        <button type="submit">Guardar</button>
-      </form>
-      <button id="whatsapp-test" class="ghost">Enviar prueba</button>
-      <button id="whatsapp-disconnect" class="ghost">Desconectar</button>
+      <div id="wa-link-box">
+        <button id="wa-link">Vincular mi WhatsApp</button>
+        <div id="wa-qr" class="qr hidden">
+          <img id="wa-qr-img" alt="Código QR para vincular WhatsApp" width="280" height="280">
+          <ol class="steps">
+            <li>En tu teléfono abre WhatsApp → <strong>Ajustes → Dispositivos vinculados</strong>.</li>
+            <li>Toca <strong>Vincular un dispositivo</strong> y escanea este código.</li>
+          </ol>
+          <button id="wa-link-cancel" class="ghost">Cancelar</button>
+        </div>
+        <p id="wa-link-note" class="muted"></p>
+      </div>
+      <div id="wa-tools" class="hidden">
+        <p class="muted">Número vinculado: <strong id="wa-number"></strong></p>
+        <div class="pv-row">
+          <button id="wa-send-file">Enviar un archivo…</button>
+          <button id="wa-send-location" class="ghost">Mandar la ubicación de mi PC</button>
+          <button id="wa-share-location" class="ghost">Compartir ubicación 1 h</button>
+          <button id="wa-stop-sharing" class="ghost hidden">Dejar de compartir</button>
+        </div>
+        <p id="wa-sharing" class="muted"></p>
+        <label class="row"><input id="wa-ip" type="checkbox"> Si Windows no da la ubicación, usar la aproximada por IP (manda tu IP a ipwho.is; precisión de ciudad)</label>
+        <button id="wa-test" class="ghost">Enviar prueba</button>
+        <button id="wa-unlink" class="ghost">Desvincular</button>
+      </div>
+      <details>
+        <summary>Solo avisos con la API oficial de Meta (alternativa, sin archivos ni ubicación)</summary>
+        <p class="muted">Pasos en el README. Si ya vinculaste tu número, esto no hace falta.</p>
+        <p>Estado de la API oficial: <strong id="wa-cloud-status"></strong></p>
+        <form id="whatsapp-form">
+          <input id="wa-token" type="password" placeholder="Token de acceso" autocomplete="off">
+          <input id="wa-phone-id" placeholder="ID del número de teléfono (de Meta)" autocomplete="off">
+          <input id="wa-to" placeholder="Tu número con lada, ej. 523312345678" autocomplete="off">
+          <button type="submit">Guardar</button>
+        </form>
+        <button id="whatsapp-test" class="ghost">Enviar prueba</button>
+        <button id="whatsapp-disconnect" class="ghost">Desconectar</button>
+      </details>
     </section>
 
     <section class="card" data-solo="personal">

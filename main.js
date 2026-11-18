@@ -214,7 +214,7 @@ function statuses() {
     canva: canva.status(),
     notion: notion.status(),
     spotify: spotify.status(),
-    whatsapp: whatsapp.status(),
+    whatsapp: whatsapp.info(),
     update: updater.status(),
     apps: apps.list(),
     alarms: alarms.list(),
@@ -263,6 +263,19 @@ ipcMain.handle('spotify-connect', async () => { await spotify.connect(); return 
 ipcMain.handle('spotify-disconnect', () => { spotify.disconnect(); return refresh(); });
 ipcMain.handle('whatsapp-save', (_e, cfg) => whatsapp.save(cfg));
 ipcMain.handle('whatsapp-test', () => whatsapp.sendTest());
+ipcMain.handle('whatsapp-link-start', () => whatsapp.startLink());
+ipcMain.handle('whatsapp-link-state', () => whatsapp.linkState());
+ipcMain.handle('whatsapp-link-cancel', () => whatsapp.cancelLink());
+ipcMain.handle('whatsapp-unlink', () => whatsapp.unlink());
+ipcMain.handle('whatsapp-send-file', async () => {
+  const r = await dialog.showOpenDialog(win, { title: 'Archivo para mandar a tu WhatsApp', properties: ['openFile'] });
+  if (r.canceled || !r.filePaths[0]) return null;
+  return whatsapp.sendFile(r.filePaths[0]);
+});
+ipcMain.handle('whatsapp-send-location', () => whatsapp.sendLocation());
+ipcMain.handle('whatsapp-share-location', (_e, minutes) => whatsapp.shareLocation(minutes));
+ipcMain.handle('whatsapp-stop-sharing', () => whatsapp.stopSharing());
+ipcMain.handle('whatsapp-location-ip', (_e, on) => whatsapp.setLocationIp(on));
 ipcMain.handle('whatsapp-disconnect', () => whatsapp.disconnect());
 ipcMain.handle('update-set-enabled', (_e, on) => updater.setEnabled(on));
 ipcMain.handle('update-check', () => updater.check());
@@ -385,6 +398,7 @@ app.whenReady().then(() => {
   store.snapshot();
   setInterval(() => store.snapshot(), 6 * 60 * 60 * 1000);
   updater.init();
+  whatsapp.init();
   // El micrófono solo se permite a la ventana del tablero.
   session.defaultSession.setPermissionRequestHandler((wc, permission, cb) => {
     cb(permission !== 'media' || (win && wc === win.webContents));
@@ -436,7 +450,7 @@ app.whenReady().then(() => {
 });
 
 app.on('activate', showWindow);
-app.on('before-quit', () => { quitting = true; });
+app.on('before-quit', () => { quitting = true; whatsapp.shutdown(); });
 app.on('will-quit', () => globalShortcut.unregisterAll());
 // No salir cuando se cierran las ventanas: la app vive en la bandeja.
 app.on('window-all-closed', () => {});
