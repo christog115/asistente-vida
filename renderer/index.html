@@ -358,10 +358,15 @@
         <div class="pv-row">
           <button id="wa-send-file">Enviar un archivo…</button>
           <button id="wa-send-location" class="ghost">Mandar la ubicación de mi PC</button>
-          <button id="wa-share-location" class="ghost">Compartir ubicación 1 h</button>
-          <button id="wa-stop-sharing" class="ghost hidden">Dejar de compartir</button>
         </div>
-        <p id="wa-sharing" class="muted"></p>
+        <h3>Mandar mi ubicación a alguien</h3>
+        <p class="muted">Guarda a las personas a las que quieras poder mandarles el pin de tu PC (un solo envío, no se actualiza). Solo a ellas, nunca a un número que no guardaste aquí. También por voz: "mándale mi ubicación a mamá".</p>
+        <ul id="wa-contacts" class="list"></ul>
+        <form id="wa-contact-form" class="pv-row">
+          <input id="wa-contact-name" placeholder="Nombre (ej. Mamá)" autocomplete="off">
+          <input id="wa-contact-number" placeholder="Número con lada, ej. 523312345678" autocomplete="off">
+          <button type="submit">Guardar contacto</button>
+        </form>
         <label class="row"><input id="wa-ip" type="checkbox"> Si Windows no da la ubicación, usar la aproximada por IP (manda tu IP a ipwho.is; precisión de ciudad)</label>
         <button id="wa-test" class="ghost">Enviar prueba</button>
         <button id="wa-unlink" class="ghost">Desvincular</button>

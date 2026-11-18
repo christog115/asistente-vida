@@ -535,9 +535,7 @@ function renderWhatsapp(w) {
   $('wa-tools').classList.toggle('hidden', !open);
   $('wa-number').textContent = l.number ? '+' + l.number : '';
   $('wa-ip').checked = !!w.locationIp;
-  $('wa-share-location').classList.toggle('hidden', !!w.sharing);
-  $('wa-stop-sharing').classList.toggle('hidden', !w.sharing);
-  $('wa-sharing').textContent = w.sharing ? `Compartiendo la ubicación de tu PC: quedan ${w.sharing.minutesLeft} min. Va mandando un pin nuevo cuando te mueves.` : '';
+  renderWaContacts(w.contacts || []);
   clearTimeout(waTimer);
   if (l.state === 'qr' || (l.state === 'connecting' && !l.number)) waTimer = setTimeout(pollWhatsapp, 2000);
 }
@@ -564,12 +562,35 @@ $('wa-send-location').onclick = async () => {
   msg.textContent = 'Buscando la ubicación de la PC…';
   try { await api.whatsappSendLocation(); msg.textContent = 'Te mandé la ubicación de tu PC.'; } catch (err) { msg.textContent = 'Error: ' + cleanError(err); }
 };
-$('wa-share-location').onclick = async () => {
-  msg.textContent = 'Buscando la ubicación de la PC…';
-  try { await api.whatsappShareLocation(60); msg.textContent = 'Compartiendo la ubicación por 1 hora.'; } catch (err) { msg.textContent = 'Error: ' + cleanError(err); }
-  renderStatus();
+function renderWaContacts(list) {
+  const ul = $('wa-contacts');
+  ul.replaceChildren();
+  if (!list.length) ul.append(li('Sin contactos guardados.', 'muted'));
+  for (const c of list) {
+    const row = li('', 'devices-row');
+    row.append(Object.assign(document.createElement('span'), { textContent: `${c.name} · +${c.number}` }));
+    const btns = document.createElement('span');
+    btns.className = 'pv-row';
+    btns.append(
+      button('Mandar mi ubicación', async () => {
+        if (!confirm(`¿Mandarle a ${c.name} la ubicación actual de tu PC? Se envía un solo pin.`)) return;
+        msg.textContent = 'Buscando la ubicación de la PC…';
+        try { await api.whatsappSendLocationTo(c.name); msg.textContent = `Le mandé a ${c.name} la ubicación de tu PC.`; } catch (err) { msg.textContent = 'Error: ' + cleanError(err); }
+      }, false),
+      button('Quitar', () => run(() => api.whatsappContactRemove(c.name), 'Contacto quitado.'))
+    );
+    row.append(btns);
+    ul.append(row);
+  }
+}
+$('wa-contact-form').onsubmit = (e) => {
+  e.preventDefault();
+  run(async () => {
+    await api.whatsappContactAdd($('wa-contact-name').value, $('wa-contact-number').value);
+    $('wa-contact-name').value = '';
+    $('wa-contact-number').value = '';
+  }, 'Contacto guardado.');
 };
-$('wa-stop-sharing').onclick = async () => { await api.whatsappStopSharing(); msg.textContent = 'Dejé de compartir la ubicación.'; renderStatus(); };
 $('wa-ip').onchange = (e) => api.whatsappLocationIp(e.target.checked);
 $('whatsapp-disconnect').onclick = () => run(() => api.whatsappDisconnect(), 'WhatsApp desconectado.');
 function describeRepeat(ms) {

@@ -103,3 +103,26 @@ test('distancia entre ubicaciones', () => {
   const d = location.distance(gdl, { lat: 20.6597, lon: -103.3496 + 0.001 });
   assert.ok(d > 90 && d < 120, String(d)); // 0.001° de longitud ≈ 104 m aquí
 });
+
+test('contactos: solo los guardados, con nombre y número válidos', () => {
+  const dir = tmp();
+  Module._load = function (req, ...rest) {
+    if (req === 'electron') return { app: { getPath: () => dir }, safeStorage: { isEncryptionAvailable: () => true, encryptString: (t) => Buffer.from(t), decryptString: (b) => b.toString() } };
+    return orig.call(this, req, ...rest);
+  };
+  for (const k of Object.keys(require.cache)) if (/src[\\/](store|whatsapp|location)\.js$/.test(k)) delete require.cache[k];
+  const wa = require('../src/whatsapp');
+  Module._load = orig;
+  assert.throws(() => wa.addContact('', '523312345678'), /nombre/);
+  assert.throws(() => wa.addContact('Mamá', '123'), /lada/);
+  wa.addContact('Mamá', '+52 33 1234 5678');
+  wa.addContact('Juan Pérez', '5213398765432');
+  assert.deepStrictEqual(wa.contacts().map((c) => c.number), ['523312345678', '5213398765432']);
+  assert.strictEqual(wa.findContact('mama').name, 'Mamá');
+  assert.strictEqual(wa.findContact('a juan perez').name, 'Juan Pérez');
+  assert.strictEqual(wa.findContact('desconocido'), null);
+  assert.strictEqual(wa.findContact(''), null);
+  assert.strictEqual(wa.removeContact('Mamá').length, 1);
+  // Sin vincular no manda nada, aunque el contacto exista.
+  return assert.rejects(wa.sendLocationTo('Juan'), /vincula/);
+});

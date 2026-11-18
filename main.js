@@ -273,8 +273,9 @@ ipcMain.handle('whatsapp-send-file', async () => {
   return whatsapp.sendFile(r.filePaths[0]);
 });
 ipcMain.handle('whatsapp-send-location', () => whatsapp.sendLocation());
-ipcMain.handle('whatsapp-share-location', (_e, minutes) => whatsapp.shareLocation(minutes));
-ipcMain.handle('whatsapp-stop-sharing', () => whatsapp.stopSharing());
+ipcMain.handle('whatsapp-send-location-to', (_e, name) => whatsapp.sendLocationTo(name));
+ipcMain.handle('whatsapp-contact-add', (_e, name, number) => whatsapp.addContact(name, number));
+ipcMain.handle('whatsapp-contact-remove', (_e, name) => whatsapp.removeContact(name));
 ipcMain.handle('whatsapp-location-ip', (_e, on) => whatsapp.setLocationIp(on));
 ipcMain.handle('whatsapp-disconnect', () => whatsapp.disconnect());
 ipcMain.handle('update-set-enabled', (_e, on) => updater.setEnabled(on));

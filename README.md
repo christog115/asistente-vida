@@ -130,13 +130,13 @@ Qué puedes hacer (todo llega a tu chat "Tú"):
 - Los avisos de siempre (resumen del día, tareas por vencer, recordatorios de voz, productividad).
 - **Enviar un archivo…** (botón, eliges con el selector) o por voz/chat: "mándame por WhatsApp el archivo del reporte de física". Por voz solo busca en Escritorio, Documentos y Descargas (hasta 4 niveles), manda el más reciente que coincida, máximo 100 MB, y nunca manda claves, certificados, contraseñas ni la configuración de la app.
 - **Mandar la ubicación de mi PC** (un pin) o "mándame mi ubicación". La lee del servicio de ubicación de Windows (Configuración → Privacidad → Ubicación, con "apps de escritorio" permitido). Si Windows no la da, y solo si lo activas con la casilla, usa la ubicación aproximada por IP (nivel ciudad; manda tu IP a ipwho.is).
-- **Compartir ubicación 1 h** o "comparte mi ubicación en tiempo real por 2 horas" (máx. 8 h): manda un pin nuevo cada 2 minutos cuando te mueves (cada 10 si estás quieto). No es la ubicación en vivo nativa de WhatsApp, porque los clientes no oficiales no pueden abrirla. "Deja de compartir mi ubicación" la detiene.
+- **Mandar tu ubicación a otra persona**: guarda contactos (nombre y número) en Conexiones → WhatsApp y toca **Mandar mi ubicación** (pide confirmación) o di "mándale mi ubicación a mamá". Es **un solo pin, una sola vez**: no se actualiza ni sigue tu ubicación. Solo funciona con contactos que guardaste tú (nunca con un número que aparezca en un texto o que invente la IA), el número debe estar en WhatsApp, y hay un tope de 20 envíos a otras personas por día.
 
 Seguridad y riesgos, en claro:
-- **No es una API oficial.** La política de WhatsApp no permite clientes no oficiales: pueden restringir el número y un cambio de protocolo puede romperla hasta que se actualice la librería. Por eso la app solo manda a **tu propio chat**, nunca a otras personas, y **no lee, guarda ni procesa ninguna conversación** (ignora todo mensaje entrante).
+- **No es una API oficial.** La política de WhatsApp no permite clientes no oficiales: pueden restringir el número y un cambio de protocolo puede romperla hasta que se actualice la librería. Por eso la app manda a **tu propio chat** y, solo si tú lo pides, el pin de ubicación a los contactos que guardaste; **no lee, guarda ni procesa ninguna conversación** (ignora todo mensaje entrante). Mandar mensajes a otras personas por este medio sube un poco el riesgo de restricción: úsalo poco.
 - La sesión se guarda en `whatsapp-sesion.bin`, **cifrada con el cifrado del sistema** (DPAPI en Windows): copiar ese archivo a otra PC no sirve. No entra en la copia de seguridad; en otra PC hay que vincular de nuevo.
 - Para quitarla: **Desvincular** en la app, o en el teléfono Dispositivos vinculados → cerrar sesión.
-- Quien controle tu PC desbloqueada podría mandarte archivos de Escritorio/Documentos/Descargas a tu chat, pero no a otros.
+- Quien controle tu PC desbloqueada podría mandarte archivos de Escritorio/Documentos/Descargas a tu chat, y mandar tu ubicación a tus contactos guardados, pero no archivos a otros.
 
 ### API oficial de Meta (alternativa, solo avisos de texto)
 

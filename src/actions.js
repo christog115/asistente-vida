@@ -42,8 +42,7 @@ Acciones:
 {"action":"route","to":"destino: nombre guardado (escuela, trabajo) o dirección"}  // "cuánto tardo a la escuela", "cómo llego a..."
 {"action":"notion_add","title":"texto a anotar, frase corta"}  // "anota en Notion...", "agrega a Notion..."
 {"action":"notion_search","query":"palabras a buscar en Notion"}  // "busca en Notion..."
-{"action":"whatsapp_location","minutes":null}  // "mándame mi ubicación" (minutes null); "comparte mi ubicación en tiempo real" o "por 2 horas" = minutes en minutos (60 si no dijo cuánto)
-{"action":"whatsapp_location_stop"}  // "deja de compartir mi ubicación"
+{"action":"whatsapp_location","to":null}  // "mándame mi ubicación" (to null = a él mismo); "mándale mi ubicación a mamá" = to con el nombre tal como lo dijo
 {"action":"whatsapp_file","query":"palabras del nombre del archivo"}  // "mándame por WhatsApp el archivo del reporte"
 {"action":"list_reminders"}
 {"action":"cancel_reminders"}
@@ -146,15 +145,15 @@ async function run(a, now) {
     }
     case 'whatsapp_location': {
       if (!whatsapp.linkedReady()) return 'Para mandar tu ubicación vincula primero tu WhatsApp en Conexiones.';
-      if (Number(a.minutes) > 0) {
-        const min = await whatsapp.shareLocation(a.minutes);
-        return `Listo, te voy mandando la ubicación de la PC por ${span(min * 60000)}.`;
+      const to = String(a.to || '').trim();
+      if (to) {
+        // Solo a contactos que tú guardaste; un pin, una sola vez, sin actualizarse.
+        const r = await whatsapp.sendLocationTo(to);
+        return `Listo, le mandé a ${r.contact} la ubicación de tu PC (un solo pin${r.loc.source === 'ip' ? ', aproximada por IP' : ''}).`;
       }
       const loc = await whatsapp.sendLocation();
       return loc.source === 'ip' ? 'Te mandé la ubicación aproximada de la PC (por IP).' : 'Te mandé la ubicación de la PC a tu WhatsApp.';
     }
-    case 'whatsapp_location_stop':
-      return whatsapp.stopSharing() ? 'Listo, dejé de compartir la ubicación.' : 'No estaba compartiendo la ubicación.';
     case 'whatsapp_file': {
       const q = String(a.query || '').trim();
       if (!q) return 'No entendí qué archivo mandar; dímelo otra vez.';

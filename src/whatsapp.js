@@ -17,10 +17,6 @@ const location = require('./location');
 const files = require('./send-files');
 
 const GRAPH = 'https://graph.facebook.com/v21.0';
-const LOCATION_EVERY_MS = 2 * 60 * 1000;
-const LOCATION_MIN_MOVE_M = 30;
-const LOCATION_RESEND_MS = 10 * 60 * 1000;
-const MAX_SHARE_MIN = 8 * 60;
 
 // ---------- Cloud API (la de antes) ----------
 function cloudStatus() {
@@ -148,7 +144,6 @@ function wipeSession() {
   wantLinked = false;
   seq++;
   clearTimeout(retryTimer);
-  stopSharing();
   if (auth) auth.wipe();
   else { try { fs.unlinkSync(authFile()); } catch {} }
   auth = null;
@@ -245,47 +240,56 @@ async function sendLocation() {
   return loc;
 }
 
-// "Ubicación en tiempo real": WhatsApp no deja a clientes no oficiales abrir su ubicación en vivo,
-// así que se manda un pin nuevo cada 2 min mientras te muevas (o cada 10 min si estás quieto).
-let share = null;
-function stopSharing() {
-  if (!share) return false;
-  clearInterval(share.timer);
-  share = null;
-  return true;
+// ---------- Contactos a los que puedes mandar tu ubicación ----------
+// Solo a personas que TÚ guardas aquí con nombre y número (nunca a un número que diga un texto o
+// la IA), un solo pin por envío, y con un tope diario para no parecer spam.
+const MAX_TO_OTHERS_PER_DAY = 20;
+let sentToday = { day: '', n: 0 };
+
+const plain = (t) => String(t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+
+function contacts() {
+  return Object.entries(store.get('waContacts') || {}).map(([name, number]) => ({ name, number }));
 }
 
-function sharing() {
-  return share ? { until: share.until, minutesLeft: Math.max(0, Math.ceil((share.until - Date.now()) / 60000)) } : null;
+function addContact(name, number) {
+  name = String(name || '').trim().slice(0, 40);
+  const digits = String(number || '').replace(/\D/g, '');
+  if (!name) throw new Error('Escribe el nombre del contacto.');
+  if (digits.length < 10 || digits.length > 15) throw new Error('Escribe el número con lada de país, por ejemplo 523312345678.');
+  store.set('waContacts', { ...(store.get('waContacts') || {}), [name]: digits });
+  return contacts();
 }
 
-async function shareLocation(minutes) {
+function removeContact(name) {
+  const mine = { ...(store.get('waContacts') || {}) };
+  delete mine[name];
+  store.set('waContacts', mine);
+  return contacts();
+}
+
+function findContact(text) {
+  const wanted = plain(text);
+  if (!wanted) return null;
+  const list = contacts();
+  return list.find((c) => plain(c.name) === wanted) || list.find((c) => plain(c.name).includes(wanted) || wanted.includes(plain(c.name))) || null;
+}
+
+// Manda UN pin con la ubicación de la PC a un contacto guardado. No se actualiza después.
+async function sendLocationTo(name) {
   needLinked();
-  const min = Math.min(MAX_SHARE_MIN, Math.max(5, Math.round(Number(minutes) || 60)));
-  stopSharing();
-  const first = await location.current();
-  await sendLinked(pin(first, 'Mi PC (inicio)'));
-  const me = { until: Date.now() + min * 60000, last: first, lastAt: Date.now(), timer: null, busy: false };
-  share = me;
-  me.timer = setInterval(async () => {
-    if (share !== me || me.busy) return;
-    if (Date.now() >= me.until) { stopSharing(); sendLinked({ text: '*Asistente de Vida*\nTerminó la ubicación compartida de mi PC.' }).catch(() => {}); return; }
-    me.busy = true;
-    try {
-      const loc = await location.current();
-      const moved = location.distance(me.last, loc) > LOCATION_MIN_MOVE_M;
-      if (moved || Date.now() - me.lastAt >= LOCATION_RESEND_MS) {
-        await sendLinked(pin(loc, 'Mi PC'));
-        me.last = loc;
-        me.lastAt = Date.now();
-      }
-    } catch (err) {
-      console.error('Ubicación compartida:', err.message);
-    } finally {
-      me.busy = false;
-    }
-  }, LOCATION_EVERY_MS);
-  return min;
+  const c = findContact(name);
+  if (!c) throw new Error(`No tengo guardado a "${name}". Agrégalo en Conexiones → WhatsApp → Contactos.`);
+  const day = new Date().toDateString();
+  if (sentToday.day !== day) sentToday = { day, n: 0 };
+  if (sentToday.n >= MAX_TO_OTHERS_PER_DAY) throw new Error('Ya llegaste al tope de mensajes a otras personas por hoy.');
+  const found = await sock.onWhatsApp(c.number);
+  const hit = Array.isArray(found) ? found.find((x) => x && x.exists) : null;
+  if (!hit) throw new Error(`${c.name} (+${c.number}) no aparece en WhatsApp; revisa el número.`);
+  const loc = await location.current();
+  sentToday.n++;
+  await sock.sendMessage(hit.jid, pin(loc, loc.source === 'ip' ? 'Mi ubicación (aproximada)' : 'Mi ubicación'));
+  return { contact: c.name, loc };
 }
 
 // Para la pantalla.
@@ -297,13 +301,12 @@ function info() {
   return {
     cloud: cloudStatus(),
     linked: linkState(),
-    sharing: sharing(),
+    contacts: contacts(),
     locationIp: location.allowIp()
   };
 }
 
 function shutdown() {
-  stopSharing();
   seq++;
   clearTimeout(retryTimer);
   if (auth) auth.flush();
@@ -313,6 +316,6 @@ function shutdown() {
 module.exports = {
   status, info, init, shutdown, save, disconnect, send, sendTest, trySend,
   startLink, cancelLink, unlink, linkState,
-  sendFile, sendLocation, shareLocation, stopSharing, sharing,
+  sendFile, sendLocation, sendLocationTo, contacts, addContact, removeContact, findContact,
   setLocationIp: location.setAllowIp, linkedReady
 };
