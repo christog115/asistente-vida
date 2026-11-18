@@ -16,7 +16,7 @@ const store = require('./store');
 const { createAuthStore } = require('./whatsapp-auth');
 const location = require('./location');
 const files = require('./send-files');
-const { parseLocationCommand } = require('./wa-commands');
+const { parseLocationCommand, parseLiveCommand, isStopCommand } = require('./wa-commands');
 
 const GRAPH = 'https://graph.facebook.com/v21.0';
 
@@ -155,17 +155,21 @@ function onMessage(m, lb, s) {
     if (!isOwnChat(m.key.remoteJid, s, lb)) return;
     const text = m.message.conversation || (m.message.extendedTextMessage && m.message.extendedTextMessage.text);
     if (!text) return;
-    const name = parseLocationCommand(text);
-    if (!name) return;
+    const live = parseLiveCommand(text);
+    const stop = !live && isStopCommand(text);
+    const name = !live && !stop ? parseLocationCommand(text) : null;
+    if (!live && !stop && !name) return;
     // Solo mensajes recientes (al reconectar WhatsApp reenvía los viejos) y sin repetir.
     const ts = m.messageTimestamp && typeof m.messageTimestamp === 'object' && m.messageTimestamp.toNumber ? m.messageTimestamp.toNumber() : Number(m.messageTimestamp);
     if (!ts || Math.abs(Date.now() / 1000 - ts) > 120) return;
     if (seenIds.has(m.key.id)) return;
     seenIds.add(m.key.id);
     if (seenIds.size > 200) seenIds.delete(seenIds.values().next().value);
-    sendLocationTo(name)
-      .then((r) => sendLinked({ text: `*Asistente de Vida*\nListo, le mandé a ${r.contact} la ubicación de la PC (un solo pin).` }))
-      .catch((err) => sendLinked({ text: `*Asistente de Vida*\nNo pude mandar la ubicación: ${err.message}` }).catch(() => {}));
+    const say = (t) => sendLinked({ text: `*Asistente de Vida*\n${t}` }).catch(() => {});
+    if (stop) return say(stopLive() ? 'Listo, dejé de compartir la ubicación en vivo.' : 'No había ubicación en vivo activa.');
+    const job = live ? startLive(live.name, live.minutes).then((r) => `Empecé a compartir la ubicación en vivo de la PC con ${r.contact} por ${r.minutes} min (experimental). Para parar escribe "deja de compartir mi ubicación".`)
+      : sendLocationTo(name).then((r) => `Listo, le mandé a ${r.contact} la ubicación de la PC (un solo pin).`);
+    job.then(say).catch((err) => say(`No pude mandar la ubicación: ${err.message}`));
   } catch (err) {
     console.error('Orden por WhatsApp:', err.message);
   }
@@ -179,6 +183,7 @@ function onConnectError(err) {
 
 function wipeSession() {
   wantLinked = false;
+  stopLive();
   seq++;
   clearTimeout(retryTimer);
   if (auth) auth.wipe();
@@ -315,8 +320,8 @@ function findContact(text) {
   return list.find((c) => plain(c.name) === wanted) || list.find((c) => plain(c.name).includes(wanted) || wanted.includes(plain(c.name))) || null;
 }
 
-// Manda UN pin con la ubicación de la PC a un contacto guardado. No se actualiza después.
-async function sendLocationTo(name) {
+// Busca al contacto guardado, comprueba que su número esté en WhatsApp y cuenta el envío del día.
+async function resolveContact(name) {
   needLinked();
   const c = findContact(name);
   if (!c) throw new Error(`No tengo guardado a "${name}". Agrégalo en Conexiones → WhatsApp → Contactos.`);
@@ -326,10 +331,59 @@ async function sendLocationTo(name) {
   const found = await sock.onWhatsApp(c.number);
   const hit = Array.isArray(found) ? found.find((x) => x && x.exists) : null;
   if (!hit) throw new Error(`${c.name} (+${c.number}) no aparece en WhatsApp; revisa el número.`);
-  const loc = await location.current();
   sentToday.n++;
-  await sock.sendMessage(hit.jid, pin(loc));
+  return { c, jid: hit.jid };
+}
+
+// Manda UN pin con la ubicación de la PC a un contacto guardado. No se actualiza después.
+async function sendLocationTo(name) {
+  const { c, jid } = await resolveContact(name);
+  const loc = await location.current();
+  await sock.sendMessage(jid, pin(loc));
   return { contact: c.name, loc };
+}
+
+// ---------- Ubicación en vivo (EXPERIMENTAL) ----------
+// La librería no trae la ubicación en vivo lista: se arma a mano el mensaje liveLocationMessage del
+// protocolo y las actualizaciones se mandan con el mismo ID de mensaje y un número de secuencia que
+// sube. No está comprobado contra WhatsApp real: si el contacto no ve el punto moviéndose, no funciona.
+const LIVE_EVERY_MS = 30 * 1000;
+const LIVE_DEFAULT_MIN = 60;
+const LIVE_MAX_MIN = 8 * 60;
+let live = null;
+
+function stopLive() {
+  if (!live) return false;
+  clearInterval(live.timer);
+  live = null;
+  return true;
+}
+
+function liveInfo() {
+  return live ? { contact: live.contact, minutesLeft: Math.max(0, Math.ceil((live.until - Date.now()) / 60000)) } : null;
+}
+
+async function startLive(name, minutes) {
+  const { c, jid } = await resolveContact(name);
+  const min = Math.min(LIVE_MAX_MIN, Math.max(5, Math.round(Number(minutes) || LIVE_DEFAULT_MIN)));
+  stopLive();
+  const first = await location.current();
+  const messageId = B.generateMessageIDV2 ? B.generateMessageIDV2(sock.user && sock.user.id) : B.generateMessageID();
+  let sequence = 1;
+  const push = (loc) => sock.relayMessage(jid, {
+    liveLocationMessage: { degreesLatitude: loc.lat, degreesLongitude: loc.lon, accuracyInMeters: loc.accuracy || undefined, sequenceNumber: sequence++, timeOffset: 0 }
+  }, { messageId });
+  await push(first);
+  const me = { contact: c.name, until: Date.now() + min * 60000, timer: null, busy: false };
+  live = me;
+  me.timer = setInterval(async () => {
+    if (live !== me || me.busy) return;
+    if (Date.now() >= me.until) { stopLive(); sendLinked({ text: `*Asistente de Vida*\nTerminó la ubicación en vivo con ${me.contact}.` }).catch(() => {}); return; }
+    if (!linkedReady()) return; // reconectando: se reintenta en el siguiente ciclo
+    me.busy = true;
+    try { await push(await location.current()); } catch (err) { console.error('Ubicación en vivo:', err.message); } finally { me.busy = false; }
+  }, LIVE_EVERY_MS);
+  return { contact: c.name, minutes: min };
 }
 
 // Para la pantalla.
@@ -342,12 +396,14 @@ function info() {
     cloud: cloudStatus(),
     linked: linkState(),
     contacts: contacts(),
+    live: liveInfo(),
     remote: remoteOn(),
     locationIp: location.allowIp()
   };
 }
 
 function shutdown() {
+  stopLive();
   seq++;
   clearTimeout(retryTimer);
   if (auth) auth.flush();
@@ -357,6 +413,6 @@ function shutdown() {
 module.exports = {
   status, info, init, shutdown, save, disconnect, send, sendTest, trySend,
   startLink, cancelLink, unlink, linkState,
-  sendFile, sendLocation, sendLocationTo, contacts, addContact, removeContact, findContact,
+  sendFile, sendLocation, sendLocationTo, startLive, stopLive, contacts, addContact, removeContact, findContact,
   setLocationIp: location.setAllowIp, setRemote, linkedReady
 };

@@ -136,3 +136,15 @@ test('órdenes por el chat "Tú": solo "ubicación a <contacto>"', () => {
   assert.strictEqual(p('envíale mi ubicación para Juan'), 'juan');
   for (const no of ['hola', 'ubicación', 'abre spotify', 'kara manda el archivo del reporte', '*Asistente de Vida*\nListo, le mandé a Mamá la ubicación de la PC (un solo pin).', 'mi ubicación es la casa', 'kara ubicación a ' + 'x'.repeat(200), '']) assert.strictEqual(p(no), null, no);
 });
+
+test('ubicación en vivo (experimental): órdenes y parada', () => {
+  const { parseLiveCommand: live, isStopCommand: stop, parseLocationCommand: one } = require('../src/wa-commands');
+  assert.deepStrictEqual(live('kara ubicación en vivo a mamá'), { name: 'mama', minutes: null });
+  assert.deepStrictEqual(live('kara ubicación en vivo a Juan Pérez por 2 horas'), { name: 'juan perez', minutes: 120 });
+  assert.deepStrictEqual(live('comparte mi ubicación en tiempo real a mamá durante 45 minutos'), { name: 'mama', minutes: 45 });
+  assert.deepStrictEqual(live('ubicación en vivo para mamá por 1.5 h'), { name: 'mama', minutes: 90 });
+  assert.strictEqual(live('ubicación a mamá'), null);
+  assert.strictEqual(one('ubicación en vivo a mamá'), null); // no se confunde con el pin de una vez
+  for (const yes of ['deja de compartir mi ubicación', 'kara para la ubicación en vivo', 'detén mi ubicación', 'cancela la ubicación en tiempo real']) assert.ok(stop(yes), yes);
+  for (const no of ['ubicación a mamá', 'hola', 'para mamá', 'deja de compartir']) assert.ok(!stop(no), no);
+});

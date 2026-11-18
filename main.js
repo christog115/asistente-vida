@@ -274,6 +274,8 @@ ipcMain.handle('whatsapp-send-file', async () => {
 });
 ipcMain.handle('whatsapp-send-location', () => whatsapp.sendLocation());
 ipcMain.handle('whatsapp-send-location-to', (_e, name) => whatsapp.sendLocationTo(name));
+ipcMain.handle('whatsapp-live-start', (_e, name, minutes) => whatsapp.startLive(name, minutes));
+ipcMain.handle('whatsapp-live-stop', () => whatsapp.stopLive());
 ipcMain.handle('whatsapp-remote-set', (_e, on) => whatsapp.setRemote(on));
 ipcMain.handle('whatsapp-contact-add', (_e, name, number) => whatsapp.addContact(name, number));
 ipcMain.handle('whatsapp-contact-remove', (_e, name) => whatsapp.removeContact(name));

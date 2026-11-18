@@ -13,4 +13,20 @@ function parseLocationCommand(text) {
   return name || null;
 }
 
-module.exports = { parseLocationCommand, plain };
+// "ubicación en vivo a mamá" / "... por 2 horas" (EXPERIMENTAL). Devuelve { name, minutes|null } o null.
+function parseLiveCommand(text) {
+  const t = plain(text).replace(/^(kara|jarvis)[ ,:;.-]*/, '');
+  if (t.length > 140) return null;
+  const m = /^(?:(?:mand|envi|pas|comparte|compart)\w*\s+)?(?:mi\s+)?ubicacion\s+en\s+(?:vivo|tiempo real)\s+(?:a|para)\s+(.+?)(?:\s+(?:por|durante)\s+(\d+(?:[.,]\d+)?)\s*(horas?|h|minutos?|min))?[.!?¡¿]*$/.exec(t);
+  if (!m) return null;
+  const n = m[2] ? Number(m[2].replace(',', '.')) : null;
+  return { name: m[1].trim(), minutes: n ? Math.round(/^h/.test(m[3]) ? n * 60 : n) : null };
+}
+
+// "deja de compartir mi ubicación", "para la ubicación en vivo".
+function isStopCommand(text) {
+  const t = plain(text).replace(/^(kara|jarvis)[ ,:;.-]*/, '').replace(/[.!?¡¿]+$/, '');
+  return /^(?:deja(?:r)? de compartir|para(?:r)?|deten(?:er)?|termina(?:r)?|cancela(?:r)?)\s+(?:de compartir\s+)?(?:mi\s+|la\s+)?ubicacion(?:\s+en\s+(?:vivo|tiempo real))?$/.test(t);
+}
+
+module.exports = { parseLocationCommand, parseLiveCommand, isStopCommand, plain };
