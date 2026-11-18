@@ -42,7 +42,8 @@ Acciones:
 {"action":"route","to":"destino: nombre guardado (escuela, trabajo) o dirección"}  // "cuánto tardo a la escuela", "cómo llego a..."
 {"action":"notion_add","title":"texto a anotar, frase corta"}  // "anota en Notion...", "agrega a Notion..."
 {"action":"notion_search","query":"palabras a buscar en Notion"}  // "busca en Notion..."
-{"action":"whatsapp_location","to":null}  // "mándame mi ubicación" (to null = a él mismo); "mándale mi ubicación a mamá" = to con el nombre tal como lo dijo
+{"action":"whatsapp_location","to":null,"live":false,"minutes":null}  // "mándame mi ubicación" (to null = a él mismo); "mándale mi ubicación a mamá" = to con el nombre tal como lo dijo; "ubicación en vivo / en tiempo real a mamá" = live true (minutes si dijo cuánto)
+{"action":"whatsapp_location_stop"}  // "deja de compartir mi ubicación"
 {"action":"whatsapp_file","query":"palabras del nombre del archivo"}  // "mándame por WhatsApp el archivo del reporte"
 {"action":"list_reminders"}
 {"action":"cancel_reminders"}
@@ -146,6 +147,10 @@ async function run(a, now) {
     case 'whatsapp_location': {
       if (!whatsapp.linkedReady()) return 'Para mandar tu ubicación vincula primero tu WhatsApp en Conexiones.';
       const to = String(a.to || '').trim();
+      if (to && a.live) {
+        const r = await whatsapp.startLive(to, a.minutes);
+        return `Empecé a compartir la ubicación en vivo de la PC con ${r.contact} por ${r.minutes} minutos (experimental).`;
+      }
       if (to) {
         // Solo a contactos que tú guardaste; un pin, una sola vez, sin actualizarse.
         const r = await whatsapp.sendLocationTo(to);
@@ -154,6 +159,8 @@ async function run(a, now) {
       const loc = await whatsapp.sendLocation();
       return loc.source === 'ip' ? 'Te mandé la ubicación aproximada de la PC (por IP).' : 'Te mandé la ubicación de la PC a tu WhatsApp.';
     }
+    case 'whatsapp_location_stop':
+      return whatsapp.stopLive() ? 'Listo, dejé de compartir la ubicación en vivo.' : 'No había ubicación en vivo activa.';
     case 'whatsapp_file': {
       const q = String(a.query || '').trim();
       if (!q) return 'No entendí qué archivo mandar; dímelo otra vez.';
