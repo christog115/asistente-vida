@@ -537,8 +537,6 @@ function renderWhatsapp(w) {
   $('wa-ip').checked = !!w.locationIp;
   renderWaContacts(w.contacts || []);
   $('wa-remote').checked = w.remote !== false;
-  $('wa-live-box').classList.toggle('hidden', !w.live);
-  $('wa-live-text').textContent = w.live ? `Ubicación en vivo con ${w.live.contact}: quedan ${w.live.minutesLeft} min.` : '';
   clearTimeout(waTimer);
   if (l.state === 'qr' || (l.state === 'connecting' && !l.number)) waTimer = setTimeout(pollWhatsapp, 2000);
 }
@@ -580,12 +578,6 @@ function renderWaContacts(list) {
         msg.textContent = 'Buscando la ubicación de la PC…';
         try { await api.whatsappSendLocationTo(c.name); msg.textContent = `Le mandé a ${c.name} la ubicación de tu PC.`; } catch (err) { msg.textContent = 'Error: ' + cleanError(err); }
       }, false),
-      button('En vivo (experimental)', async () => {
-        if (!confirm(`¿Compartir con ${c.name} la ubicación en vivo de tu PC por 1 hora? Es experimental: puede que ${c.name} no vea el punto moviéndose.`)) return;
-        msg.textContent = 'Buscando la ubicación de la PC…';
-        try { await api.whatsappLiveStart(c.name, 60); msg.textContent = `Compartiendo la ubicación en vivo con ${c.name} por 1 hora.`; } catch (err) { msg.textContent = 'Error: ' + cleanError(err); }
-        renderStatus();
-      }),
       button('Quitar', () => run(() => api.whatsappContactRemove(c.name), 'Contacto quitado.'))
     );
     row.append(btns);
@@ -600,7 +592,6 @@ $('wa-contact-form').onsubmit = (e) => {
     $('wa-contact-number').value = '';
   }, 'Contacto guardado.');
 };
-$('wa-live-stop').onclick = async () => { await api.whatsappLiveStop(); msg.textContent = 'Dejé de compartir la ubicación en vivo.'; renderStatus(); };
 $('wa-remote').onchange = (e) => api.whatsappRemoteSet(e.target.checked);
 $('wa-ip').onchange = (e) => api.whatsappLocationIp(e.target.checked);
 $('whatsapp-disconnect').onclick = () => run(() => api.whatsappDisconnect(), 'WhatsApp desconectado.');
