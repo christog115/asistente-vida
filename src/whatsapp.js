@@ -5,7 +5,8 @@
 //    abierta Baileys. Todo se manda a TU PROPIO chat ("Tú"), sin servidor ni Docker en medio.
 //    Ojo: no es una API oficial. WhatsApp puede cambiar el protocolo y romperla, y su política no
 //    permite clientes no oficiales, así que existe el riesgo de que restrinjan el número. Por eso
-//    solo manda a tu propio chat, nunca a otras personas, y no lee ni guarda ninguna conversación.
+//    manda a tu propio chat y, solo si tú lo pides, el pin de ubicación a contactos que guardaste; no guarda conversaciones y solo
+//    reacciona a la orden "ubicación a <contacto>" escrita por ti en tu propio chat.
 // 2) La API oficial de Meta (Cloud API): solo avisos de texto, a tu número.
 const path = require('path');
 const fs = require('fs');
@@ -15,6 +16,7 @@ const store = require('./store');
 const { createAuthStore } = require('./whatsapp-auth');
 const location = require('./location');
 const files = require('./send-files');
+const { parseLocationCommand } = require('./wa-commands');
 
 const GRAPH = 'https://graph.facebook.com/v21.0';
 
@@ -98,11 +100,12 @@ async function connect() {
     printQRInTerminal: false,
     // No baja el historial ni se marca "en línea": tu teléfono sigue avisándote normal.
     syncFullHistory: false, markOnlineOnConnect: false, generateHighQualityLinkPreview: false,
-    // Nunca se pide ni se procesa ningún mensaje de tus chats.
+    // Nunca se piden mensajes viejos de tus chats.
     getMessage: async () => undefined
   });
   sock = s;
   s.ev.on('creds.update', () => auth.saveCreds());
+  s.ev.on('messages.upsert', (u) => { for (const m of (u && u.messages) || []) onMessage(m, lb, s); });
   s.ev.on('connection.update', async (u) => {
     if (mine !== seq) return;
     if (u.qr) {
@@ -132,6 +135,40 @@ async function connect() {
       retryTimer = setTimeout(() => connect().catch(onConnectError), wait);
     }
   });
+}
+
+// Órdenes desde tu chat "Tú": lo ÚNICO que se mira de tus chats son los mensajes que TÚ escribes en
+// tu propio chat, y de esos solo se actúa si dicen "ubicación a <contacto guardado>". Todo lo demás
+// (otros chats, mensajes de otros, el resto de tus notas) se ignora sin leerse ni guardarse.
+const seenIds = new Set();
+const remoteOn = () => store.get('waRemote') !== false;
+
+function isOwnChat(jid, s, lb) {
+  if (!jid || !s.user) return false;
+  const norm = (j) => (j ? lb.jidNormalizedUser(j) : null);
+  return jid === norm(s.user.id) || jid === norm(s.user.lid);
+}
+
+function onMessage(m, lb, s) {
+  try {
+    if (!remoteOn() || !m || !m.key || !m.key.fromMe || !m.message) return;
+    if (!isOwnChat(m.key.remoteJid, s, lb)) return;
+    const text = m.message.conversation || (m.message.extendedTextMessage && m.message.extendedTextMessage.text);
+    if (!text) return;
+    const name = parseLocationCommand(text);
+    if (!name) return;
+    // Solo mensajes recientes (al reconectar WhatsApp reenvía los viejos) y sin repetir.
+    const ts = m.messageTimestamp && typeof m.messageTimestamp === 'object' && m.messageTimestamp.toNumber ? m.messageTimestamp.toNumber() : Number(m.messageTimestamp);
+    if (!ts || Math.abs(Date.now() / 1000 - ts) > 120) return;
+    if (seenIds.has(m.key.id)) return;
+    seenIds.add(m.key.id);
+    if (seenIds.size > 200) seenIds.delete(seenIds.values().next().value);
+    sendLocationTo(name)
+      .then((r) => sendLinked({ text: `*Asistente de Vida*\nListo, le mandé a ${r.contact} la ubicación de la PC (un solo pin).` }))
+      .catch((err) => sendLinked({ text: `*Asistente de Vida*\nNo pude mandar la ubicación: ${err.message}` }).catch(() => {}));
+  } catch (err) {
+    console.error('Orden por WhatsApp:', err.message);
+  }
 }
 
 function onConnectError(err) {
@@ -249,6 +286,8 @@ let sentToday = { day: '', n: 0 };
 
 const plain = (t) => String(t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
 
+const setRemote = (on) => store.set('waRemote', !!on);
+
 function contacts() {
   return Object.entries(store.get('waContacts') || {}).map(([name, number]) => ({ name, number }));
 }
@@ -303,6 +342,7 @@ function info() {
     cloud: cloudStatus(),
     linked: linkState(),
     contacts: contacts(),
+    remote: remoteOn(),
     locationIp: location.allowIp()
   };
 }
@@ -318,5 +358,5 @@ module.exports = {
   status, info, init, shutdown, save, disconnect, send, sendTest, trySend,
   startLink, cancelLink, unlink, linkState,
   sendFile, sendLocation, sendLocationTo, contacts, addContact, removeContact, findContact,
-  setLocationIp: location.setAllowIp, linkedReady
+  setLocationIp: location.setAllowIp, setRemote, linkedReady
 };
