@@ -28,6 +28,7 @@ contextBridge.exposeInMainWorld('asistente', {
   whatsappSendFile: () => ipcRenderer.invoke('whatsapp-send-file'),
   whatsappSendLocation: () => ipcRenderer.invoke('whatsapp-send-location'),
   whatsappSendLocationTo: (name) => ipcRenderer.invoke('whatsapp-send-location-to', name),
+  whatsappRemoteSet: (on) => ipcRenderer.invoke('whatsapp-remote-set', on),
   whatsappContactAdd: (name, number) => ipcRenderer.invoke('whatsapp-contact-add', name, number),
   whatsappContactRemove: (name) => ipcRenderer.invoke('whatsapp-contact-remove', name),
   whatsappLocationIp: (on) => ipcRenderer.invoke('whatsapp-location-ip', on),

@@ -126,3 +126,13 @@ test('contactos: solo los guardados, con nombre y número válidos', () => {
   // Sin vincular no manda nada, aunque el contacto exista.
   return assert.rejects(wa.sendLocationTo('Juan'), /vincula/);
 });
+
+test('órdenes por el chat "Tú": solo "ubicación a <contacto>"', () => {
+  const { parseLocationCommand: p } = require('../src/wa-commands');
+  assert.strictEqual(p('kara ubicación a mamá'), 'mama');
+  assert.strictEqual(p('Ubicación a Juan Pérez'), 'juan perez');
+  assert.strictEqual(p('kara, mándale mi ubicación a mamá.'), 'mama');
+  assert.strictEqual(p('manda mi ubicacion de pc a Mamá'), 'mama');
+  assert.strictEqual(p('envíale mi ubicación para Juan'), 'juan');
+  for (const no of ['hola', 'ubicación', 'abre spotify', 'kara manda el archivo del reporte', '*Asistente de Vida*\nListo, le mandé a Mamá la ubicación de la PC (un solo pin).', 'mi ubicación es la casa', 'kara ubicación a ' + 'x'.repeat(200), '']) assert.strictEqual(p(no), null, no);
+});

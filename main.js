@@ -274,6 +274,7 @@ ipcMain.handle('whatsapp-send-file', async () => {
 });
 ipcMain.handle('whatsapp-send-location', () => whatsapp.sendLocation());
 ipcMain.handle('whatsapp-send-location-to', (_e, name) => whatsapp.sendLocationTo(name));
+ipcMain.handle('whatsapp-remote-set', (_e, on) => whatsapp.setRemote(on));
 ipcMain.handle('whatsapp-contact-add', (_e, name, number) => whatsapp.addContact(name, number));
 ipcMain.handle('whatsapp-contact-remove', (_e, name) => whatsapp.removeContact(name));
 ipcMain.handle('whatsapp-location-ip', (_e, on) => whatsapp.setLocationIp(on));
@@ -286,15 +287,17 @@ ipcMain.handle('ai-set-key', (_e, which, key) => ai.setKey(which, key));
 ipcMain.handle('ai-set-provider', (_e, p) => ai.setProvider(p));
 ipcMain.handle('openjarvis-set', (_e, changes) => ai.setOpenJarvis(changes));
 ipcMain.handle('openjarvis-test', () => ai.testOpenJarvis());
-ipcMain.handle('ai-chat', async (_e, history, opts) => {
-  // Si la última frase es una orden (recordatorio, evento, abrir un programa) se ejecuta en vez de charlar.
+// Si la última frase es una orden (recordatorio, evento, abrir un programa, mandar la ubicación) se
+// ejecuta en vez de charlar. Lo usan el chat de la PC y el del celular.
+async function chatOrAct(history, opts) {
   const last = history[history.length - 1];
   if (last && last.role === 'user') {
     const done = await actions.tryHandle(last.content);
     if (done) { refresh(); return done; }
   }
   return ai.chat(history, latest, opts);
-});
+}
+ipcMain.handle('ai-chat', (_e, history, opts) => chatOrAct(history, opts));
 ipcMain.handle('voice-status', () => ({
   ...voice.status(), edgeVoices: tts.VOICES, defaultEdge: tts.DEFAULT_VOICE, piperReady: piper.status().ready
 }));
@@ -407,7 +410,7 @@ app.whenReady().then(() => {
   mobile.start({
     getData: async () => latest || cached || refresh(),
     refresh,
-    chat: (history) => ai.chat(history, latest)
+    chat: (history) => chatOrAct(history)
   });
   createWindow();
   globalShortcut.register(VOICE_SHORTCUT, () => win && win.webContents.send('voice-activate'));

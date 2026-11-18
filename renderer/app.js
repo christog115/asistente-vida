@@ -536,6 +536,7 @@ function renderWhatsapp(w) {
   $('wa-number').textContent = l.number ? '+' + l.number : '';
   $('wa-ip').checked = !!w.locationIp;
   renderWaContacts(w.contacts || []);
+  $('wa-remote').checked = w.remote !== false;
   clearTimeout(waTimer);
   if (l.state === 'qr' || (l.state === 'connecting' && !l.number)) waTimer = setTimeout(pollWhatsapp, 2000);
 }
@@ -591,6 +592,7 @@ $('wa-contact-form').onsubmit = (e) => {
     $('wa-contact-number').value = '';
   }, 'Contacto guardado.');
 };
+$('wa-remote').onchange = (e) => api.whatsappRemoteSet(e.target.checked);
 $('wa-ip').onchange = (e) => api.whatsappLocationIp(e.target.checked);
 $('whatsapp-disconnect').onclick = () => run(() => api.whatsappDisconnect(), 'WhatsApp desconectado.');
 function describeRepeat(ms) {
