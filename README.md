@@ -180,6 +180,20 @@ En **Conexiones → Perfil** escribe el nombre de quien usa la app y elige **Con
 
 Para instalarlo en la PC de otra persona: instala la app, que esa persona conecte **su propia** cuenta de Google (y su clave de Claude o Gemini) y elija el perfil Contador. Cada PC guarda sus datos por separado.
 
+## Productividad (solo PC)
+
+Pestaña **Productividad**. Cada 5 segundos la app mira qué ventana tienes al frente (programa y título de la pestaña del navegador) y cuánto llevas sin tocar teclado ni mouse, y lo suma a **Trabajo** (investigación o producción), **Entretenimiento** o **Escuela** (apagada hasta la fecha que pongas; por defecto 1 de enero de 2027).
+
+- Cualquier juego en las carpetas de Steam, Epic, Riot, Xbox, EA o Ubisoft cuenta como entretenimiento, además de YouTube, Netflix, Twitch, redes, etc. Las categorías se editan en la misma pestaña, y lo que no reconoce aparece en "Lo que no reconocí" para clasificarlo con un clic.
+- Trabajo cuenta aunque no teclees (por ejemplo leyendo a Claude); con 5 minutos sin actividad el reloj se pausa y aparece un aviso.
+- **Cronómetro** para trabajo en papel (también desde el menú de la bandeja). Cuenta aunque la PC esté bloqueada; si abres un juego mientras corre, ese rato es entretenimiento.
+- **Metas mínimas**: L–J 3 h, V 2 h, S 4 h, D 30 min (editables). El día empieza a las 04:00 para que trabajar de madrugada cuente al día anterior.
+- **Recordatorios**: 2 min después de prender la PC y luego cada 30 min mientras no cumplas la meta y no estés trabajando: notificación + kara con una frase dura sobre tu porqué (escríbelo en ajustes). Con la IA conectada, cada día se generan frases nuevas.
+- **Ventana forzada**: desde las 21:30 (o antes si ya no alcanza el tiempo antes de las 23:30) una ventana a pantalla completa y siempre encima. Solo se quita empezando a trabajar (si en 3 min no estás en una app de trabajo, regresa), iniciando el cronómetro o con una pausa de emergencia (2 de 10 min al día). Cerrar la app desde la bandeja también la quita, pero queda anotado.
+- **Reporte semanal**: el domingo a las 21:00 la IA analiza la semana (trabajo contra juegos, días fallados, horas, consejos). Se guarda y se puede volver a generar.
+- **Privacidad**: todo se guarda en `%APPDATA%\Asistente de Vida\productividad\` (un archivo por día). Solo se guarda el nombre de la app o del sitio, nunca lo que escribes ni el título completo. La app deja ver el historial pero no tiene ninguna opción para borrarlo.
+- La detección usa PowerShell (incluido en Windows), sin módulos nativos. En Mac por ahora solo funciona el cronómetro.
+
 ## Copia de seguridad
 
 En **Conexiones → Copia de seguridad** pon una contraseña y toca **Guardar copia**: crea un archivo `.avbak` cifrado con tu configuración, recordatorios, programas y claves (para cambiar de PC o por si algo se pierde). **Restaurar copia** lo vuelve a cargar con la misma contraseña; si la olvidas no hay forma de abrirlo. Además la app guarda sola una copia diaria de `config.json` en `backups/` (las últimas 7) y, si el archivo se daña, recupera la más reciente.

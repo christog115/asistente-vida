@@ -10,7 +10,8 @@
     "start": "electron .",
     "build:win": "electron-builder --win",
     "build:mac": "electron-builder --mac",
-    "release:win": "electron-builder --win --publish always"
+    "release:win": "electron-builder --win --publish always",
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",
@@ -33,6 +34,7 @@
     "files": [
       "main.js",
       "preload.js",
+      "preload-forzar.js",
       "src/**",
       "renderer/**"
     ],

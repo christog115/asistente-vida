@@ -28,6 +28,7 @@ const profile = require('./src/profile');
 const clients = require('./src/clients');
 const fiscal = require('./src/fiscal');
 const cfdi = require('./src/cfdi');
+const focus = require('./src/focus');
 
 const REFRESH_MS = 15 * 60 * 1000;
 
@@ -86,10 +87,11 @@ function createWindow() {
   });
 }
 
-function showWindow() {
+function showWindow(view) {
   if (!win) return;
   win.show();
   win.focus();
+  if (typeof view === 'string') win.webContents.send('open-view', view);
 }
 
 function createTray() {
@@ -97,6 +99,8 @@ function createTray() {
   tray.setToolTip('Asistente de Vida');
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: 'Abrir tablero', click: showWindow },
+    { label: 'Productividad', click: () => showWindow('productividad') },
+    { label: 'Iniciar o detener cronómetro (papel)', click: () => { if (focus.today().stopwatch) focus.stopwatchStop(); else focus.stopwatchStart(); } },
     { label: 'Actualizar ahora', click: () => refresh() },
     { label: 'Hablar con el asistente', accelerator: VOICE_SHORTCUT, click: () => win && win.webContents.send('voice-activate') },
     { type: 'separator' },
@@ -348,6 +352,22 @@ ipcMain.handle('cfdi-save', async (_e, key) => { await cfdi.saveToDrive(key); re
 ipcMain.handle('cfdi-save-all', async () => { const n = await cfdi.saveAllClients(); quickUpdate(); return n; });
 ipcMain.handle('set-reminders', (_e, times) => store.set('reminderTimes', times));
 ipcMain.handle('set-morning-speech', (_e, on) => store.set('morningSpeech', !!on));
+// Productividad (solo PC). A propósito no hay ninguna orden para borrar el historial.
+ipcMain.handle('focus-today', () => focus.today());
+ipcMain.handle('focus-week', (_e, weekKey) => focus.weekView(weekKey));
+ipcMain.handle('focus-settings', () => focus.settings());
+ipcMain.handle('focus-save-settings', (_e, changes) => focus.saveSettings(changes));
+ipcMain.handle('focus-rule-save', (_e, rule) => focus.saveRule(rule));
+ipcMain.handle('focus-rule-remove', (_e, label) => focus.removeRule(label));
+ipcMain.handle('focus-rules-reset', () => focus.resetRules());
+ipcMain.handle('focus-quick-rule', (_e, label, cat, kind) => focus.quickRule(label, cat, kind));
+ipcMain.handle('focus-stopwatch-start', (_e, note) => focus.stopwatchStart(note));
+ipcMain.handle('focus-stopwatch-stop', () => focus.stopwatchStop());
+ipcMain.handle('focus-report', (_e, weekKey) => focus.makeReport(weekKey));
+ipcMain.handle('focus-test-nag', () => focus.testNag());
+ipcMain.handle('focus-test-force', () => focus.testForce());
+ipcMain.handle('force-state', () => focus.forceState());
+ipcMain.handle('force-action', (_e, what) => focus.forceAction(what));
 ipcMain.handle('set-autostart', (_e, on) => {
   app.setLoginItemSettings(loginItem(on));
 });
@@ -395,6 +415,8 @@ app.whenReady().then(() => {
   // En modo estudio los resúmenes y avisos no hablan (las notificaciones siguen apareciendo).
   const speakUnlessStudying = (text) => { if (!study.active()) speakOut(text); };
   setInterval(() => study.tick(speakOut), 15 * 1000);
+  // Recordatorios de trabajo: kara habla si la voz está activada (también en modo estudio no, para no interrumpir).
+  focus.init({ speak: speakUnlessStudying, showWindow });
   // Devuelve false si no pudo hablar (voz apagada o modo estudio) para no marcarlo como dicho.
   const trySpeak = (text) => {
     if (!win || !voice.status().enabled || study.active()) return false;

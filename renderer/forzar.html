@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'">
+  <title>Hora de trabajar</title>
+  <link rel="stylesheet" href="forzar.css">
+</head>
+<body>
+  <main>
+    <p class="kicker">Se acaba el día y no has cumplido</p>
+    <h1>Te faltan <span id="remaining">…</span></h1>
+    <p class="meta">Llevas <span id="worked">…</span> de <span id="goal">…</span>. El día cierra a las <span id="day-end">…</span>.</p>
+    <blockquote id="phrase"></blockquote>
+    <p id="why" class="why"></p>
+    <div class="actions">
+      <button id="work" class="primary">Empezar a trabajar ahora</button>
+      <button id="stopwatch">Trabajo en papel: iniciar cronómetro</button>
+    </div>
+    <p class="hint">Si en 3 minutos no estás en una app de trabajo, esta ventana regresa.</p>
+    <button id="snooze" class="snooze">Emergencia: pausa de <span id="snooze-min">10</span> min (<span id="snooze-left">2</span> hoy)</button>
+  </main>
+  <script src="forzar.js"></script>
+</body>
+</html>
