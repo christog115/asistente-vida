@@ -136,3 +136,48 @@ test('lo demás se le pasa a kara como charla', async () => {
   await telegram._handle(from(55, { text: '¿qué tengo hoy?' }));
   assert.strictEqual(sent().pop().text, 'hola desde kara');
 });
+
+test('comandos guiados: /mensaje pregunta contacto y texto, y confirma', async () => {
+  wa.out.length = 0;
+  await telegram._handle(from(55, { text: '/mensaje' }));
+  const ask = sent().pop();
+  assert.match(ask.text, /A quién/);
+  assert.deepStrictEqual(ask.reply_markup.keyboard, [[{ text: 'Mamá' }]]); // contactos como botones
+  await telegram._handle(from(55, { text: 'Mamá' }));
+  assert.match(sent().pop().text, /Qué le digo a Mamá/);
+  await telegram._handle(from(55, { text: 'ya casi llego' }));
+  assert.strictEqual(wa.out.length, 0);
+  await telegram._handle(press(55, lastButtons()[0].callback_data));
+  assert.deepStrictEqual(wa.out, [['texto', 'Mamá', 'ya casi llego']]);
+});
+
+test('/foto: elige contacto, manda la foto con pie y confirma', async () => {
+  wa.out.length = 0;
+  await telegram._handle(from(55, { text: '/foto' }));
+  await telegram._handle(from(55, { text: 'Mamá' }));
+  assert.match(sent().pop().text, /Mándame ahora la foto/);
+  await telegram._handle(from(55, { photo: [{ file_id: 'p', file_size: 5 }], caption: 'mira el atardecer' }));
+  await telegram._handle(press(55, lastButtons()[0].callback_data));
+  assert.strictEqual(wa.out[0][0], 'media');
+  assert.strictEqual(wa.out[0][2].caption, 'mira el atardecer');
+});
+
+test('/ubicacion y /cancelar', async () => {
+  wa.out.length = 0;
+  await telegram._handle(from(55, { text: '/ubicacion Mamá' }));
+  await telegram._handle(press(55, lastButtons()[0].callback_data));
+  assert.deepStrictEqual(wa.out, [['pin', 'Mamá']]);
+  await telegram._handle(from(55, { text: '/mensaje' }));
+  await telegram._handle(from(55, { text: '/cancelar' }));
+  await telegram._handle(from(55, { text: 'hola' }));
+  assert.strictEqual(sent().pop().text, 'hola desde kara'); // ya no está en un paso guiado
+});
+
+test('"manda esta foto a mamá" como pie y "¿quién me escribió?"', async () => {
+  assert.deepStrictEqual(cmd.parseCaptionTarget('manda esta foto a mamá'), { contact: 'mamá', caption: '' });
+  assert.deepStrictEqual(cmd.parseCaptionTarget('Mándale esta foto a Mamá: mira'), { contact: 'Mamá', caption: 'mira' });
+  assert.ok(cmd.isWhoWrote('¿Quién me escribió?') && cmd.isWhoWrote('quién me mandó mensaje') && !cmd.isWhoWrote('quién es Ana'));
+  await telegram.notifyIncoming({ jid: '1@s.whatsapp.net', label: 'Pedro', text: 'hola, ¿ya llegaste?' });
+  await telegram._handle(from(55, { text: '¿quién me escribió?' }));
+  assert.match(sent().pop().text, /Pedro: hola, ¿ya llegaste\?/);
+});

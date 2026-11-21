@@ -25,7 +25,8 @@ let offset = 0;
 let fails = 0;
 let lastError = null;
 let pairing = null; // { code, expires, tries }
-let awaiting = null; // { media, caption } mientras espera "¿a quién se lo mando?"
+let flow = null; // paso a paso en curso: { type: 'mensaje'|'foto'|'ubicacion'|'media-target', step, contact?, media?, caption? }
+const recent = []; // últimos mensajes reenviados, solo en memoria (se borran al cerrar la app)
 const pending = new Map(); // confirmaciones: id -> { run, desc, expires }
 const forwarded = new Map(); // id del mensaje en Telegram -> { jid, label }
 let history = [];
@@ -84,7 +85,8 @@ function pairCode() {
 function disconnect() {
   gen++;
   pairing = null;
-  awaiting = null;
+  flow = null;
+  recent.length = 0;
   pending.clear();
   forwarded.clear();
   history = [];
@@ -94,7 +96,7 @@ function disconnect() {
 function unpair() {
   const c = cfg();
   if (c) saveCfg({ ...c, chatId: null });
-  awaiting = null;
+  flow = null;
   pending.clear();
 }
 
@@ -116,6 +118,7 @@ async function sendTest() {
 function start() {
   const mine = ++gen;
   fails = 0;
+  if (cfg() && cfg().chatId) setMenu();
   loop(mine).catch((err) => console.error('Telegram:', err.message));
 }
 
@@ -157,17 +160,42 @@ async function tryPair(m, c) {
   pairing = null;
   saveCfg({ ...c, chatId: m.chat.id });
   await say('Vinculado. Desde aquí puedes pedirme cosas. Manda /ayuda para ver la lista.');
+  setMenu();
+}
+
+const COMMANDS = [
+  ['mensaje', 'Mandar un mensaje por WhatsApp a un contacto'],
+  ['foto', 'Mandar una foto, video o archivo a un contacto'],
+  ['ubicacion', 'Mandar el pin de tu PC a un contacto'],
+  ['miubicacion', 'Que te llegue aquí la ubicación de tu PC'],
+  ['quien', 'Ver los últimos mensajes que te llegaron'],
+  ['contactos', 'Ver tus contactos guardados'],
+  ['cancelar', 'Cancelar lo que estaba haciendo'],
+  ['ayuda', 'Ver esta lista']
+];
+
+// Menú de comandos que Telegram muestra al escribir "/".
+function setMenu() {
+  api('setMyCommands', { commands: COMMANDS.map(([command, description]) => ({ command, description })) }).catch(() => {});
 }
 
 const HELP = [
-  'Esto puedo hacer:',
+  'Comandos (te van preguntando paso a paso):',
+  '/mensaje: mando un mensaje por WhatsApp. Eliges el contacto y escribes el texto.',
+  '/foto: mando una foto, video o archivo. Eliges el contacto y luego me mandas la foto (con texto si quieres).',
+  '/ubicacion: le mando a un contacto el pin de tu PC.',
+  '/miubicacion: te mando aquí la ubicación de tu PC.',
+  '/quien: te muestro los últimos mensajes que te llegaron.',
+  '/contactos: tus contactos guardados.',
+  '/cancelar: dejo lo que estaba haciendo.',
   '',
-  '• "dile a Mamá que llego tarde": mando ese mensaje desde tu WhatsApp (antes te pido confirmar).',
-  '• Mándame una foto o video con el pie "para Mamá" y se lo paso.',
-  '• Contesta un mensaje reenviado para responderle a esa persona.',
-  '• "ubicación a Mamá": le mando el pin de tu PC. "mi ubicación": te lo mando a ti.',
-  '• "archivo reporte física": te traigo ese archivo de la PC.',
-  '• Cualquier otra cosa se la paso a kara como si le hablaras en la app.',
+  'También entiendo frases sueltas:',
+  '• "dile a Mamá que llego tarde"',
+  '• una foto o video con el pie "para Mamá" o "manda esta foto a Mamá"',
+  '• contestar un mensaje reenviado para responderle a esa persona',
+  '• "ubicación a Mamá", "mi ubicación", "¿quién me escribió?"',
+  '• "archivo reporte física": te traigo ese archivo de la PC',
+  '• cualquier otra cosa se la paso a kara como si le hablaras en la app.',
   '',
   'Solo mando a contactos que guardaste en la app, y siempre confirmo antes de enviar.'
 ].join('\n');
@@ -175,6 +203,21 @@ const HELP = [
 function contactList() {
   const list = deps.whatsapp.contacts().map((c) => c.name);
   return list.length ? `Tus contactos: ${list.join(', ')}.` : 'Aún no guardaste contactos en la app (Conexiones → WhatsApp).';
+}
+
+// Botones con tus contactos para tocar en vez de escribir el nombre.
+function contactKeyboard() {
+  const names = deps.whatsapp.contacts().map((c) => ({ text: c.name }));
+  const rows = [];
+  for (let i = 0; i < names.length; i += 2) rows.push(names.slice(i, i + 2));
+  return { reply_markup: { keyboard: rows, one_time_keyboard: true, resize_keyboard: true } };
+}
+const noKeyboard = { reply_markup: { remove_keyboard: true } };
+
+async function askContact(type, question) {
+  if (!deps.whatsapp.contacts().length) { flow = null; return say(contactList()); }
+  flow = { type, step: 'contact' };
+  await say(`${question}\nToca un contacto o escribe su nombre (o /cancelar).`, contactKeyboard());
 }
 
 function needContact(name) {
@@ -246,10 +289,16 @@ async function askMedia(name, media, caption) {
 }
 
 async function onMedia(m, media, text) {
+  // Dentro de /foto el contacto ya está elegido; el texto de la foto es el pie.
+  if (flow && flow.type === 'foto' && flow.contact) {
+    const to = flow.contact;
+    flow = null;
+    return askMedia(to, media, text);
+  }
   const t = cmd.parseCaptionTarget(text);
-  if (t) return askMedia(t.contact, media, t.caption);
-  awaiting = { media, caption: text };
-  await say(`¿A quién le mando ${media.label}? Escribe el nombre. ${contactList()} (o "cancelar").`);
+  if (t) { flow = null; return askMedia(t.contact, media, t.caption); }
+  flow = { type: 'media-target', media, caption: text };
+  await say(`¿A quién le mando ${media.label}? Toca un contacto o escribe el nombre (o /cancelar).`, contactKeyboard());
 }
 
 async function sendMyLocation() {
@@ -270,24 +319,70 @@ async function sendPcFile(query) {
   await api('sendDocument', form, { timeout: 120000 });
 }
 
+function showRecent() {
+  if (!recent.length) {
+    return say('No tengo mensajes recientes. Los mensajes de WhatsApp solo llegan aquí si activas el reenvío en la app (Conexiones → Telegram), y solo recuerdo los que llegaron desde que se abrió la app.');
+  }
+  const hm = (t) => new Date(t).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+  return say('Últimos mensajes:\n' + recent.slice(-10).map((r) => `${hm(r.at)} · ${r.label}: ${r.text.slice(0, 200)}`).join('\n'));
+}
+
+// Un paso de un comando guiado (/mensaje, /foto, /ubicacion) o de "¿a quién le mando esta foto?".
+async function onFlowStep(text) {
+  const f = flow;
+  if (f.type === 'media-target') {
+    flow = null;
+    const name = cmd.parseTargetName(text);
+    return name ? askMedia(name, f.media, f.caption) : say('No entendí a quién. Vuelve a mandar la foto.');
+  }
+  if (f.step === 'contact') {
+    const r = needContact(cmd.parseTargetName(text) || text);
+    if (r.error) return say(r.error, contactKeyboard());
+    if (f.type === 'ubicacion') {
+      flow = null;
+      return confirm(`Mandarle a ${r.contact.name} el pin con la ubicación de tu PC (un solo envío).`, () => deps.whatsapp.sendLocationTo(r.contact.name).then(() => ''));
+    }
+    flow = { ...f, step: f.type === 'foto' ? 'media' : 'text', contact: r.contact.name };
+    return say(f.type === 'foto' ? `Listo, a ${r.contact.name}. Mándame ahora la foto, el video o el archivo. Si quieres ponerle texto, ponlo como pie de la foto.` : `¿Qué le digo a ${r.contact.name}?`, noKeyboard);
+  }
+  if (f.step === 'text') {
+    flow = null;
+    return confirm(`Mandar a ${f.contact} por WhatsApp:\n«${text.slice(0, 1500)}»`, () => deps.whatsapp.sendTextToContact(f.contact, text));
+  }
+  return say(`Estoy esperando la foto, el video o el archivo para ${f.contact}. Mándalo, o escribe /cancelar.`);
+}
+
+async function runCommand(c) {
+  switch (c.name) {
+    case 'start': case 'ayuda': case 'help': flow = null; return say(HELP);
+    case 'cancelar': flow = null; return say('Cancelado.', noKeyboard);
+    case 'contactos': return say(contactList());
+    case 'quien': return showRecent();
+    case 'miubicacion': flow = null; return sendMyLocation();
+    case 'mensaje': case 'foto': case 'video': case 'archivo': case 'ubicacion': {
+      const type = c.name === 'mensaje' ? 'mensaje' : c.name === 'ubicacion' ? 'ubicacion' : 'foto';
+      if (c.arg) { flow = { type, step: 'contact' }; return onFlowStep(c.arg); }
+      return askContact(type, type === 'mensaje' ? '¿A quién le escribo?' : type === 'ubicacion' ? '¿A quién le mando el pin de tu PC?' : '¿A quién le mando la foto?');
+    }
+    default: return say('Ese comando no lo conozco. Manda /ayuda para ver la lista.');
+  }
+}
+
 async function onMessage(m) {
   const text = String(m.text || m.caption || '').trim();
   const media = mediaOf(m);
   try {
     if (media) return await onMedia(m, media, text);
     if (!text) return;
-    if (/^cancelar$/i.test(text)) { awaiting = null; return await say('Cancelado.'); }
-    if (/^\/(start|ayuda|help)\b/i.test(text)) return await say(HELP);
-    if (awaiting) {
-      const { media: md, caption } = awaiting;
-      awaiting = null;
-      const name = cmd.parseTargetName(text);
-      if (name) return await askMedia(name, md, caption);
-    }
+    if (/^cancelar$/i.test(text)) { flow = null; return await say('Cancelado.', noKeyboard); }
+    const command = cmd.parseCommand(text);
+    if (command) return await runCommand(command);
     const replied = m.reply_to_message && forwarded.get(m.reply_to_message.message_id);
     if (replied) {
+      flow = null;
       return await confirm(`Responderle a ${replied.label} por WhatsApp:\n«${text.slice(0, 500)}»`, () => deps.whatsapp.replyTo(replied.jid, text));
     }
+    if (flow) return await onFlowStep(text);
     const locTo = parseLocationCommand(text);
     if (locTo) {
       const r = needContact(locTo);
@@ -295,6 +390,7 @@ async function onMessage(m) {
       return await confirm(`Mandarle a ${r.contact.name} el pin con la ubicación de tu PC (un solo envío).`, () => deps.whatsapp.sendLocationTo(r.contact.name).then(() => ''));
     }
     if (cmd.isMyLocation(text)) return await sendMyLocation();
+    if (cmd.isWhoWrote(text)) return await showRecent();
     const send = cmd.parseSend(text);
     if (send) {
       const r = needContact(send.contact);
@@ -318,6 +414,8 @@ async function onMessage(m) {
 async function notifyIncoming({ jid, label, text }) {
   const c = cfg();
   if (!c || !c.chatId) return;
+  recent.push({ at: Date.now(), label, text: String(text) });
+  if (recent.length > 50) recent.shift();
   const sent = await say(`${label} (WhatsApp):\n${text}`);
   forwarded.set(sent.message_id, { jid, label });
   if (forwarded.size > 300) forwarded.delete(forwarded.keys().next().value);

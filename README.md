@@ -158,10 +158,17 @@ Un bot de Telegram **tuyo** (oficial, gratis, sin riesgo de baneo) para hablar c
 2. En la app: **Conexiones → Telegram** → pega el token → **Guardar token**.
 3. **Generar código** y, en Telegram, escríbele a tu bot `/vincular 123456` (vale 10 minutos, 5 intentos). Desde ese momento el bot solo obedece a ese chat; cualquier otra persona que le escriba es ignorada sin respuesta.
 
-Qué puedes pedirle:
-- `dile a Mamá que llego tarde` (o `mándale a Juan: nos vemos`): manda ese mensaje desde tu WhatsApp.
-- **Fotos y videos**: mándalos al bot con el pie `para Mamá` (o sin pie, y te pregunta a quién). Los bots de Telegram solo pueden bajar archivos de hasta 20 MB.
-- `ubicación a Mamá`: le manda el pin de tu PC (un solo envío). `mi ubicación`: te lo manda a ti en Telegram. Recuerda que es la ubicación de la PC, no la del celular.
+Comandos guiados (te preguntan paso a paso y te muestran tus contactos como botones; también salen en el menú "/" de Telegram):
+- `/mensaje`: eliges contacto, escribes el texto y confirmas.
+- `/foto`: eliges contacto y luego mandas la foto, video o archivo (el pie de la foto viaja como texto). Los bots de Telegram solo pueden bajar archivos de hasta 20 MB.
+- `/ubicacion`: le manda a un contacto el pin de tu PC (un solo envío). `/miubicacion`: te lo manda a ti en Telegram (es la ubicación de la PC, no la del celular).
+- `/quien`: los últimos mensajes que te llegaron (solo en memoria, hasta 50; se borran al cerrar la app y requieren el reenvío activado).
+- `/contactos`, `/cancelar` y `/ayuda`.
+
+También entiende frases sueltas:
+- `dile a Mamá que llego tarde` (o `mándale a Juan: nos vemos`).
+- Una foto o video con el pie `para Mamá` o `manda esta foto a Mamá` (sin pie, te pregunta a quién).
+- `ubicación a Mamá`, `mi ubicación`, `¿quién me escribió?`.
 - `archivo reporte física`: te manda ese archivo de Escritorio/Documentos/Descargas (mismas reglas que por WhatsApp).
 - **Leer tus mensajes**: en Conexiones → Telegram elige reenviar los mensajes de WhatsApp "solo de mis contactos guardados" o "de cualquier chat individual" (apagado por defecto). Te llegan al bot; **contesta el mensaje reenviado** para responderle a esa persona. Los grupos, estados y canales nunca se reenvían; de las fotos y videos solo avisa que llegaron. Nada se guarda en la PC.
 - Cualquier otra cosa se la pasa a kara como si le hablaras en el chat de la app (recordatorios, tareas, resumen del día, etc.).
