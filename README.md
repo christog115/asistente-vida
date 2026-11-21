@@ -133,7 +133,7 @@ Qué puedes hacer (todo llega a tu chat "Tú"):
 - **Mandar tu ubicación a otra persona**: guarda contactos (nombre y número) en Conexiones → WhatsApp y toca **Mandar mi ubicación** (pide confirmación) o di "mándale mi ubicación a mamá". Estando fuera puedes pedirlo escribiendo en tu chat **"Tú"** de WhatsApp, por ejemplo `kara ubicación a mamá` (la PC debe estar prendida y con internet); te contesta en el mismo chat. Es **un solo pin, una sola vez**: no se actualiza ni sigue tu ubicación. Solo funciona con contactos que guardaste tú (nunca con un número que aparezca en un texto o que invente la IA), el número debe estar en WhatsApp, y hay un tope de 20 envíos a otras personas por día.
 
 Seguridad y riesgos, en claro:
-- **No es una API oficial.** La política de WhatsApp no permite clientes no oficiales: pueden restringir el número y un cambio de protocolo puede romperla hasta que se actualice la librería. Por eso la app manda a **tu propio chat** y, solo si tú lo pides, el pin de ubicación a los contactos que guardaste; **no guarda ninguna conversación** y de tus chats solo mira lo que tú escribes en tu propio chat "Tú" (ver abajo). Mandar mensajes a otras personas por este medio sube un poco el riesgo de restricción: úsalo poco.
+- **No es una API oficial.** La política de WhatsApp no permite clientes no oficiales: pueden restringir el número y un cambio de protocolo puede romperla hasta que se actualice la librería. Por eso la app manda a **tu propio chat** y, solo si tú lo pides, el pin de ubicación a los contactos que guardaste; **no guarda ninguna conversación**, y de tus chats solo mira lo que tú escribes en tu propio chat "Tú" (ver abajo) y, únicamente si activas el reenvío a Telegram, los mensajes individuales que te llegan. Mandar mensajes a otras personas por este medio sube un poco el riesgo de restricción: úsalo poco.
 - **Órdenes por tu chat "Tú"** (casilla en Conexiones → WhatsApp, activada por defecto): lo único que la app mira de tus chats son los mensajes que **tú escribes en tu propio chat**, y solo actúa si dicen "ubicación a <contacto guardado>". Otros chats, mensajes de otras personas y el resto de tus notas se ignoran sin leerse ni guardarse. No pasa por la IA y no acepta ninguna otra orden por ahí. Se puede apagar con la casilla.
 - La sesión se guarda en `whatsapp-sesion.bin`, **cifrada con el cifrado del sistema** (DPAPI en Windows): copiar ese archivo a otra PC no sirve. No entra en la copia de seguridad; en otra PC hay que vincular de nuevo.
 - Para quitarla: **Desvincular** en la app, o en el teléfono Dispositivos vinculados → cerrar sesión.
@@ -149,6 +149,29 @@ Usa la WhatsApp Cloud API, gratis para este uso, sin riesgo de restricción pero
 4. En la app: **Conexiones → WhatsApp → Solo avisos con la API oficial** → pega token, ID y tu número con lada (ej. `523312345678`) → **Guardar** → **Enviar prueba**.
 
 Importante: WhatsApp solo deja mandar texto libre durante 24 h después de que tú le escribes al número de la API. Para recibir avisos cada día, mándale un "hola" a ese número de vez en cuando (o aprueba una plantilla en Meta). La prueba usa la plantilla `hello_world` y siempre llega.
+
+## Telegram (mensajes, fotos y videos por WhatsApp sin abrir WhatsApp)
+
+Un bot de Telegram **tuyo** (oficial, gratis, sin riesgo de baneo) para hablar con kara estando fuera y usar tu WhatsApp vinculado a través de él.
+
+1. En Telegram abre **@BotFather**, escribe `/newbot`, elige nombre y copia el **token**.
+2. En la app: **Conexiones → Telegram** → pega el token → **Guardar token**.
+3. **Generar código** y, en Telegram, escríbele a tu bot `/vincular 123456` (vale 10 minutos, 5 intentos). Desde ese momento el bot solo obedece a ese chat; cualquier otra persona que le escriba es ignorada sin respuesta.
+
+Qué puedes pedirle:
+- `dile a Mamá que llego tarde` (o `mándale a Juan: nos vemos`): manda ese mensaje desde tu WhatsApp.
+- **Fotos y videos**: mándalos al bot con el pie `para Mamá` (o sin pie, y te pregunta a quién). Los bots de Telegram solo pueden bajar archivos de hasta 20 MB.
+- `ubicación a Mamá`: le manda el pin de tu PC (un solo envío). `mi ubicación`: te lo manda a ti en Telegram. Recuerda que es la ubicación de la PC, no la del celular.
+- `archivo reporte física`: te manda ese archivo de Escritorio/Documentos/Descargas (mismas reglas que por WhatsApp).
+- **Leer tus mensajes**: en Conexiones → Telegram elige reenviar los mensajes de WhatsApp "solo de mis contactos guardados" o "de cualquier chat individual" (apagado por defecto). Te llegan al bot; **contesta el mensaje reenviado** para responderle a esa persona. Los grupos, estados y canales nunca se reenvían; de las fotos y videos solo avisa que llegaron. Nada se guarda en la PC.
+- Cualquier otra cosa se la pasa a kara como si le hablaras en el chat de la app (recordatorios, tareas, resumen del día, etc.).
+
+Seguridad:
+- **Todo lo que sale hacia otra persona pide confirmación** con un botón (Enviar / Cancelar) y caduca a los 10 minutos. Solo a contactos que guardaste en la app, o respondiendo a un mensaje reenviado. Cuenta para el tope de 20 envíos por día a otras personas.
+- El token se guarda cifrado con el cifrado del sistema. Los mensajes pasan por los servidores de Telegram (no tienen cifrado de extremo a extremo en los bots), así que no los uses para cosas muy sensibles.
+- Quien tenga acceso a tu Telegram desbloqueado puede dar órdenes a kara. Si pierdes el celular, **Quitar el bot** en la app o bórralo con @BotFather (`/revoke`).
+- La PC debe estar prendida, con internet y con la app abierta.
+- Mandar mensajes a otras personas desde WhatsApp vinculado sube el riesgo de que WhatsApp restrinja el número; úsalo con moderación.
 
 ## Conectar la escuela (Moodle)
 

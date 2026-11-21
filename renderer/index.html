@@ -339,7 +339,7 @@
 
     <section class="card">
       <h2>WhatsApp</h2>
-      <p class="muted">Vincula tu número personal (como WhatsApp Web) para recibir avisos y mandarte archivos y la ubicación de tu PC. Todo llega a tu propio chat ("Tú"); la app no manda mensajes a nadie más ni lee tus conversaciones.</p>
+      <p class="muted">Vincula tu número personal (como WhatsApp Web) para recibir avisos y mandarte archivos y la ubicación de tu PC. Los avisos llegan a tu propio chat ("Tú"). Solo manda mensajes a otras personas si tú lo pides (y desde Telegram con confirmación), y solo mira los mensajes que te llegan si activas el reenvío en Telegram.</p>
       <p>Estado: <strong id="whatsapp-status"></strong></p>
       <div id="wa-link-box">
         <button id="wa-link">Vincular mi WhatsApp</button>
@@ -385,6 +385,39 @@
         <button id="whatsapp-test" class="ghost">Enviar prueba</button>
         <button id="whatsapp-disconnect" class="ghost">Desconectar</button>
       </details>
+    </section>
+
+    <section class="card">
+      <h2>Telegram</h2>
+      <p class="muted">Un bot tuyo para hablar con kara y mandar mensajes, fotos y videos por WhatsApp estando fuera, sin abrir WhatsApp. Solo obedece a tu chat y siempre te pide confirmar antes de mandar algo a otra persona.</p>
+      <p>Estado: <strong id="tg-status"></strong></p>
+      <div id="tg-setup">
+        <ol class="steps">
+          <li>En Telegram abre <strong>@BotFather</strong>, escribe <code>/newbot</code> y elige un nombre.</li>
+          <li>Copia el <strong>token</strong> que te da y pégalo aquí.</li>
+        </ol>
+        <form id="tg-form" class="pv-row">
+          <input id="tg-token" type="password" placeholder="Token del bot" autocomplete="off">
+          <button type="submit">Guardar token</button>
+        </form>
+      </div>
+      <div id="tg-pair" class="hidden">
+        <button id="tg-code">Generar código para vincular mi chat</button>
+        <p id="tg-code-note" class="muted"></p>
+      </div>
+      <div id="tg-tools" class="hidden">
+        <label>Reenviarme aquí los mensajes que me lleguen por WhatsApp
+          <select id="tg-forward">
+            <option value="off">No reenviar</option>
+            <option value="saved">Solo de mis contactos guardados</option>
+            <option value="all">De cualquier chat individual</option>
+          </select>
+        </label>
+        <p class="muted">Los grupos nunca se reenvían. De las fotos y videos que te lleguen solo avisa que llegaron. Nada se guarda en la PC. Para responder, contesta el mensaje reenviado.</p>
+        <button id="tg-test" class="ghost">Enviar prueba</button>
+        <button id="tg-unpair" class="ghost">Desvincular mi chat</button>
+      </div>
+      <button id="tg-disconnect" class="ghost hidden">Quitar el bot</button>
     </section>
 
     <section class="card" data-solo="personal">

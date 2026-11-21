@@ -13,6 +13,7 @@ const canva = require('./src/canva');
 const notion = require('./src/notion');
 const spotify = require('./src/spotify');
 const whatsapp = require('./src/whatsapp');
+const telegram = require('./src/telegram');
 const updater = require('./src/updater');
 const tts = require('./src/tts');
 const piper = require('./src/piper');
@@ -215,6 +216,7 @@ function statuses() {
     notion: notion.status(),
     spotify: spotify.status(),
     whatsapp: whatsapp.info(),
+    telegram: telegram.info(),
     update: updater.status(),
     apps: apps.list(),
     alarms: alarms.list(),
@@ -275,6 +277,12 @@ ipcMain.handle('whatsapp-send-file', async () => {
 ipcMain.handle('whatsapp-send-location', () => whatsapp.sendLocation());
 ipcMain.handle('whatsapp-send-location-to', (_e, name) => whatsapp.sendLocationTo(name));
 ipcMain.handle('whatsapp-remote-set', (_e, on) => whatsapp.setRemote(on));
+ipcMain.handle('whatsapp-forward-set', (_e, mode) => whatsapp.setForward(mode));
+ipcMain.handle('telegram-save', (_e, token) => telegram.save(token));
+ipcMain.handle('telegram-pair', () => telegram.pairCode());
+ipcMain.handle('telegram-test', () => telegram.sendTest());
+ipcMain.handle('telegram-unpair', () => telegram.unpair());
+ipcMain.handle('telegram-disconnect', () => telegram.disconnect());
 ipcMain.handle('whatsapp-contact-add', (_e, name, number) => whatsapp.addContact(name, number));
 ipcMain.handle('whatsapp-contact-remove', (_e, name) => whatsapp.removeContact(name));
 ipcMain.handle('whatsapp-location-ip', (_e, on) => whatsapp.setLocationIp(on));
@@ -403,6 +411,7 @@ app.whenReady().then(() => {
   setInterval(() => store.snapshot(), 6 * 60 * 60 * 1000);
   updater.init();
   whatsapp.init();
+  telegram.init({ whatsapp, chat: (history) => chatOrAct(history) });
   // El micrófono solo se permite a la ventana del tablero.
   session.defaultSession.setPermissionRequestHandler((wc, permission, cb) => {
     cb(permission !== 'media' || (win && wc === win.webContents));
@@ -454,7 +463,7 @@ app.whenReady().then(() => {
 });
 
 app.on('activate', showWindow);
-app.on('before-quit', () => { quitting = true; whatsapp.shutdown(); });
+app.on('before-quit', () => { quitting = true; whatsapp.shutdown(); telegram.shutdown(); });
 app.on('will-quit', () => globalShortcut.unregisterAll());
 // No salir cuando se cierran las ventanas: la app vive en la bandeja.
 app.on('window-all-closed', () => {});
