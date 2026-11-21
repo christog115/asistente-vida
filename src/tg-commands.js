@@ -16,11 +16,24 @@ function parseSend(text) {
   return contact && message ? { contact, message } : null;
 }
 
-// Pie de foto o video: "para Mamá" o "para Mamá: mira esto". Devuelve { contact, caption }.
+// Pie de foto o video: "para Mamá", "para Mamá: mira esto" o "manda esta foto a Mamá".
+// Devuelve { contact, caption }.
 function parseCaptionTarget(text) {
   const raw = String(text || '').trim();
-  const m = /^(?:para|a)\s+([^:,\n]{1,40}?)\s*(?:[:,]\s*(.*))?$/s.exec(raw);
+  const m = /^(?:(?:m[aá]nda|env[ií]a|p[aá]sa)(?:le|la|lo|selo|sela)?\s+(?:(?:esta|este|esto|esa|ese|estas|estos|la|el)\s+)?(?:(?:foto|fotos|imagen|video|v[ií]deo|archivo|documento|captura)\s+)?)?(?:para|a)\s+([^:,\n]{1,40}?)\s*(?:[:,]\s*(.*))?$/is.exec(raw);
   return m ? { contact: m[1].trim(), caption: (m[2] || '').trim() } : null;
+}
+
+// "/foto", "/mensaje Mamá", "/ayuda@mibot": devuelve { name, arg } o null si no empieza con "/".
+function parseCommand(text) {
+  const m = /^\/([a-z_]{1,32})(?:@\w+)?(?:\s+([\s\S]*))?$/i.exec(String(text || '').trim());
+  return m ? { name: m[1].toLowerCase(), arg: (m[2] || '').trim() } : null;
+}
+
+// "¿quién me escribió?", "quién me mandó mensaje", "qué me llegó".
+function isWhoWrote(text) {
+  const t = flat(text).replace(/[¿?¡!.]+/g, '').trim();
+  return t.length <= 60 && /^(?:quien(?:es)?\s+me\s+(?:escribio|mando|hablo|dijo|han\s+escrito)|que\s+me\s+(?:llego|mandaron|escribieron)|tengo\s+mensajes|hay\s+mensajes|mensajes\s+nuevos)/.test(t);
 }
 
 // Cuando se mandó la foto sin destinatario y se contesta solo con el nombre.
@@ -46,4 +59,4 @@ function parseFileRequest(text) {
 
 const parsePair = (text) => { const m = /^\/vincular(?:@\w+)?\s+(\d{6})$/.exec(String(text || '').trim()); return m ? m[1] : null; };
 
-module.exports = { parseSend, parseCaptionTarget, parseTargetName, isMyLocation, parseFileRequest, parsePair, flat };
+module.exports = { parseSend, parseCommand, isWhoWrote, parseCaptionTarget, parseTargetName, isMyLocation, parseFileRequest, parsePair, flat };
