@@ -299,6 +299,7 @@ async function renderStatus() {
   $('spotify-connect').classList.toggle('hidden', s.spotify !== 'desconectado');
   $('spotify-disconnect').classList.toggle('hidden', s.spotify === 'sin-credenciales');
   renderWhatsapp(s.whatsapp);
+  renderTelegram(s.telegram, s.whatsapp);
   renderUpdate(s.update);
   renderAlarms(s.alarms); renderPlaces(s.places || []); renderStudy(s.study);
   renderApps(s.apps);
@@ -595,6 +596,47 @@ $('wa-contact-form').onsubmit = (e) => {
 $('wa-remote').onchange = (e) => api.whatsappRemoteSet(e.target.checked);
 $('wa-ip').onchange = (e) => api.whatsappLocationIp(e.target.checked);
 $('whatsapp-disconnect').onclick = () => run(() => api.whatsappDisconnect(), 'WhatsApp desconectado.');
+// Telegram
+function renderTelegram(t, w = {}) {
+  if (!t) return;
+  $('tg-status').textContent = { 'sin-bot': 'Sin conectar', 'sin-chat': `Bot @${t.bot || ''} guardado; falta vincular tu chat`, vinculado: `Conectado (@${t.bot || ''})` }[t.state] + (t.error ? ` · problema: ${t.error}` : '');
+  $('tg-setup').classList.toggle('hidden', t.state !== 'sin-bot');
+  $('tg-pair').classList.toggle('hidden', t.state !== 'sin-chat');
+  $('tg-tools').classList.toggle('hidden', t.state !== 'vinculado');
+  $('tg-disconnect').classList.toggle('hidden', t.state === 'sin-bot');
+  if (t.pairing) $('tg-code-note').textContent = `Abre tu bot en Telegram (@${t.bot}) y escríbele: /vincular ${t.pairing.code}  (vale 10 minutos)`;
+  else if (t.state === 'sin-chat') $('tg-code-note').textContent = '';
+  if (w.forward) $('tg-forward').value = w.forward;
+}
+$('tg-form').onsubmit = (e) => {
+  e.preventDefault();
+  const token = $('tg-token').value;
+  $('tg-token').value = '';
+  run(() => api.telegramSave(token), 'Bot guardado. Ahora genera el código para vincular tu chat.');
+};
+$('tg-code').onclick = async () => {
+  try {
+    const r = await api.telegramPair();
+    $('tg-code-note').textContent = `Abre tu bot en Telegram (@${r.bot}) y escríbele: /vincular ${r.code}  (vale 10 minutos)`;
+    pollTelegram();
+  } catch (err) { msg.textContent = 'Error: ' + cleanError(err); }
+};
+let tgTimer = null;
+async function pollTelegram() {
+  clearTimeout(tgTimer);
+  try {
+    const st = await api.getStatus();
+    renderTelegram(st.telegram, st.whatsapp);
+    if (st.telegram && st.telegram.state === 'sin-chat' && st.telegram.pairing) tgTimer = setTimeout(pollTelegram, 3000);
+  } catch {}
+}
+$('tg-test').onclick = () => run(() => api.telegramTest(), 'Prueba enviada: revisa Telegram.');
+$('tg-forward').onchange = (e) => run(() => api.whatsappForwardSet(e.target.value), e.target.value === 'off' ? 'Ya no reenvío mensajes de WhatsApp.' : 'Reenvío activado.');
+$('tg-unpair').onclick = () => run(() => api.telegramUnpair(), 'Chat desvinculado.');
+$('tg-disconnect').onclick = async () => {
+  if (!confirm('¿Quitar el bot de Telegram de esta app?')) return;
+  await run(() => api.telegramDisconnect(), 'Bot quitado.');
+};
 function describeRepeat(ms) {
   const min = Math.round(ms / 60000);
   return min % 60 === 0 ? `cada ${min / 60 === 1 ? 'hora' : min / 60 + ' horas'}` : `cada ${min} minutos`;
